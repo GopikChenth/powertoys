@@ -1,0 +1,206 @@
+import { ListView } from "std-widgets.slint";
+import { Theme } from "../../../theme/ui/theme.slint";
+
+export struct SearchResultItem {
+    id: string,
+    title: string,
+    subtitle: string,
+    category: string,
+    action_type: string,
+}
+
+export component RunWindow inherits Window {
+    title: "PowerToys Run";
+    no-frame: true;
+    background: transparent;
+    always-on-top: true;
+
+    width: 680px;
+    height: 490px;
+
+    in-out property <string> search-query: "";
+    in-out property <[SearchResultItem]> results: [];
+    in-out property <int> selected-index: 0;
+
+    callback query-changed(string);
+    callback item-activated(int);
+    callback close-requested();
+
+    forward-focus: search-input;
+
+    // Material 3 Surface Container (Dialog / Floating Bar)
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: Theme.surface-container-high;
+        border-radius: Theme.shape-extra-large;
+        border-width: 1px;
+        border-color: Theme.outline-variant;
+        clip: true;
+
+        VerticalLayout {
+            padding: 18px;
+            spacing: 14px;
+
+            // Material 3 Search Bar Pill
+            Rectangle {
+                height: 56px;
+                background: Theme.surface-container-highest;
+                border-radius: 28px;
+                border-width: search-input.has-focus ? 2px : 1px;
+                border-color: search-input.has-focus ? Theme.primary : Theme.outline-variant;
+
+                HorizontalLayout {
+                    padding-left: 20px;
+                    padding-right: 18px;
+                    spacing: 14px;
+                    alignment: center;
+
+                    Text {
+                        text: "🔍";
+                        font-size: 18px;
+                        vertical-alignment: center;
+                    }
+
+                    search-input := TextInput {
+                        text <=> root.search-query;
+                        font-size: 16px;
+                        color: Theme.on-surface;
+                        selection-background-color: Theme.primary;
+                        selection-foreground-color: Theme.on-primary;
+                        vertical-alignment: center;
+
+                        edited => {
+                            root.query-changed(self.text);
+                        }
+
+                        accepted => {
+                            if (root.results.length > 0) {
+                                root.item-activated(root.selected-index);
+                            }
+                        }
+
+                        key-pressed(event) => {
+                            if (event.text == Key.DownArrow) {
+                                if (root.selected-index + 1 < root.results.length) {
+                                    root.selected-index += 1;
+                                }
+                                return accept;
+                            }
+                            if (event.text == Key.UpArrow) {
+                                if (root.selected-index > 0) {
+                                    root.selected-index -= 1;
+                                }
+                                return accept;
+                            }
+                            if (event.text == Key.Escape) {
+                                root.close-requested();
+                                return accept;
+                            }
+                            return reject;
+                        }
+                    }
+                }
+            }
+
+            // Results List
+            ListView {
+                for item[idx] in root.results: Rectangle {
+                    height: 58px;
+                    border-radius: Theme.shape-medium;
+                    background: idx == root.selected-index ? Theme.secondary-container : (touch.has-hover ? Theme.surface-container : transparent);
+
+                    touch := TouchArea {
+                        clicked => {
+                            root.selected-index = idx;
+                            root.item-activated(idx);
+                        }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: 16px;
+                        padding-right: 16px;
+                        spacing: 14px;
+                        alignment: center;
+
+                        // Type indicator / Icon
+                        Text {
+                            text: item.category == "Window" ? "🪟" : (item.category == "Math" ? "🔢" : "⚡");
+                            font-size: 20px;
+                            vertical-alignment: center;
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 3px;
+
+                            Text {
+                                text: item.title;
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: idx == root.selected-index ? Theme.on-secondary-container : Theme.on-surface;
+                            }
+
+                            Text {
+                                text: item.subtitle;
+                                font-size: 12px;
+                                color: idx == root.selected-index ? Theme.on-secondary-container : Theme.on-surface-variant;
+                            }
+                        }
+
+                        Rectangle { horizontal-stretch: 1; }
+
+                        // Right-aligned M3 Chip
+                        Rectangle {
+                            height: 24px;
+                            background: Theme.surface-container-low;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: Theme.outline-variant;
+
+                            HorizontalLayout {
+                                padding-left: 8px;
+                                padding-right: 8px;
+                                Text {
+                                    text: item.category;
+                                    font-size: 11px;
+                                    font-weight: 500;
+                                    color: Theme.primary;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Footer / Keybind Hints
+            Rectangle {
+                height: 24px;
+                HorizontalLayout {
+                    spacing: 16px;
+                    alignment: start;
+
+                    Text {
+                        text: "↵ Select";
+                        font-size: 11px;
+                        color: Theme.on-surface-muted;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: "↑↓ Navigate";
+                        font-size: 11px;
+                        color: Theme.on-surface-muted;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: "Esc Dismiss";
+                        font-size: 11px;
+                        color: Theme.on-surface-muted;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

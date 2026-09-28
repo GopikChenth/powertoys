@@ -1,0 +1,11 @@
+[package]
+name = "powertoys-theme"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+slint.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true

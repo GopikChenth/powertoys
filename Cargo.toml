@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/theme",
+    "crates/backend-mock",
+    "crates/backend-hyprland",
+    "crates/modules/run",
+    "crates/modules/fancyzones",
+    "crates/modules/settings",
+    "crates/daemon",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["PowerToys Linux Contributors"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+slint = { version = "1.9", default-features = false, features = ["std", "compat-1-2", "renderer-femtovg", "backend-winit"] }
+slint-build = "1.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+thiserror = "1.0"
+anyhow = "1.0"
+async-trait = "0.1"
+
+# Workspace internal crates
+powertoys-core = { path = "crates/core" }
+powertoys-theme = { path = "crates/theme" }
+powertoys-backend-mock = { path = "crates/backend-mock" }
+powertoys-backend-hyprland = { path = "crates/backend-hyprland" }
+powertoys-module-run = { path = "crates/modules/run" }
+powertoys-module-fancyzones = { path = "crates/modules/fancyzones" }
+powertoys-module-settings = { path = "crates/modules/settings" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

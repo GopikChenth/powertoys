@@ -1,0 +1,933 @@
+import { Theme } from "../../../theme/ui/theme.slint";
+
+// Authentic Material 3 Switch Component
+component M3Switch inherits Rectangle {
+    in-out property <bool> checked: true;
+    callback toggled(bool);
+
+    width: 52px;
+    height: 32px;
+    border-radius: 16px;
+    background: root.checked ? Theme.primary : Theme.surface-container-highest;
+    border-width: root.checked ? 0px : 2px;
+    border-color: Theme.outline;
+
+    animate background { duration: 150ms; }
+
+    Rectangle {
+        x: root.checked ? parent.width - self.width - 4px : 8px;
+        y: root.checked ? 4px : 8px;
+        width: root.checked ? 24px : 16px;
+        height: root.checked ? 24px : 16px;
+        border-radius: self.width / 2;
+        background: root.checked ? Theme.on-primary : Theme.outline;
+
+        animate x, width, height, y, background { duration: 150ms; }
+    }
+
+    TouchArea {
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+}
+
+// Material 3 Navigation Drawer Item (Pill Active Indicator)
+component M3NavItem inherits Rectangle {
+    in property <string> text: "";
+    in property <string> icon: "";
+    in property <bool> is-active: false;
+    callback clicked();
+
+    height: 52px;
+    border-radius: 26px;
+    background: root.is-active ? Theme.secondary-container : (touch.has-hover ? Theme.surface-container-high : transparent);
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 14px;
+        alignment: start;
+
+        Text {
+            text: root.icon;
+            font-size: 18px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: root.is-active ? 600 : 500;
+            color: root.is-active ? Theme.on-secondary-container : (touch.has-hover ? Theme.on-surface : Theme.on-surface-variant);
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Material 3 Filled Button
+component M3FilledButton inherits Rectangle {
+    in property <string> text: "";
+    callback clicked();
+
+    height: 40px;
+    border-radius: 20px;
+    background: touch.has-hover ? Theme.accent-hover : Theme.primary;
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 20px;
+        alignment: center;
+
+        Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: 600;
+            color: Theme.on-primary;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Material 3 Tonal Button
+component M3TonalButton inherits Rectangle {
+    in property <string> text: "";
+    callback clicked();
+
+    height: 40px;
+    border-radius: 20px;
+    background: touch.has-hover ? Theme.surface-container-highest : Theme.secondary-container;
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 20px;
+        alignment: center;
+
+        Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: 600;
+            color: Theme.on-secondary-container;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Material 3 Outlined Button
+component M3OutlinedButton inherits Rectangle {
+    in property <string> text: "";
+    callback clicked();
+
+    height: 40px;
+    border-radius: 20px;
+    background: touch.has-hover ? Theme.surface-container-high : transparent;
+    border-width: 1px;
+    border-color: Theme.outline;
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 20px;
+        alignment: center;
+
+        Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: 600;
+            color: Theme.primary;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+// Material 3 Filter Chip
+component M3FilterChip inherits Rectangle {
+    in property <string> text: "";
+    in property <bool> selected: false;
+    callback clicked();
+
+    height: 34px;
+    border-radius: 8px;
+    background: root.selected ? Theme.secondary-container : (touch.has-hover ? Theme.surface-container-high : transparent);
+    border-width: root.selected ? 0px : 1px;
+    border-color: Theme.outline-variant;
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 6px;
+        alignment: center;
+
+        if root.selected: Text {
+            text: "✓";
+            font-size: 12px;
+            font-weight: 700;
+            color: Theme.on-secondary-container;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.text;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 500;
+            color: root.selected ? Theme.on-secondary-container : Theme.on-surface-variant;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+export component SettingsWindow inherits Window {
+    title: "PowerToys for Linux - Settings & Dashboard";
+    width: 960px;
+    height: 660px;
+    background: transparent;
+    no-frame: true;
+    always-on-top: false;
+
+    in-out property <int> active-tab: 0; // 0: Dashboard, 1: Run, 2: FancyZones, 3: General
+    in-out property <bool> run-enabled: true;
+    in-out property <bool> fancyzones-enabled: true;
+    in-out property <bool> run-calc-enabled: true;
+    in-out property <bool> run-windows-enabled: true;
+    in-out property <string> active-preset: "3 Columns";
+    in-out property <string> status-message: "Configuration active";
+
+    callback toggle-run(bool);
+    callback toggle-fancyzones(bool);
+    callback toggle-run-calc(bool);
+    callback toggle-run-windows(bool);
+    callback launch-module(string);
+    callback select-preset(string);
+    callback save-config();
+    callback reset-config();
+    callback close-requested();
+
+    // Material 3 Base Surface Container
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: Theme.surface;
+        border-radius: Theme.shape-large;
+        border-width: 1px;
+        border-color: Theme.outline-variant;
+        clip: true;
+
+        VerticalLayout {
+            // Material 3 Top App Bar
+            Rectangle {
+                height: 64px;
+                background: Theme.surface;
+
+                HorizontalLayout {
+                    padding-left: 24px;
+                    padding-right: 20px;
+                    spacing: 14px;
+                    alignment: center;
+
+                    Text {
+                        text: "⚡";
+                        font-size: 22px;
+                        vertical-alignment: center;
+                    }
+
+                    Text {
+                        text: "PowerToys";
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: Theme.on-surface;
+                        vertical-alignment: center;
+                    }
+
+                    Rectangle {
+                        height: 24px;
+                        border-radius: 12px;
+                        background: Theme.surface-container-high;
+                        border-width: 1px;
+                        border-color: Theme.outline-variant;
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            alignment: center;
+                            Text {
+                                text: "Material 3 • Hyprland";
+                                font-size: 11px;
+                                font-weight: 600;
+                                color: Theme.primary;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    Rectangle { horizontal-stretch: 1; }
+
+                    close-btn := TouchArea {
+                        width: 40px;
+                        height: 40px;
+                        clicked => { root.close-requested(); }
+                        Rectangle {
+                            width: 100%;
+                            height: 100%;
+                            border-radius: 20px;
+                            background: close-btn.has-hover ? Theme.surface-container-high : transparent;
+                            Text {
+                                text: "✕";
+                                font-size: 16px;
+                                color: close-btn.has-hover ? Theme.error : Theme.on-surface-variant;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Divider
+            Rectangle {
+                height: 1px;
+                background: Theme.outline-variant;
+            }
+
+            // Main Content: Navigation Drawer + Content Pane
+            HorizontalLayout {
+                spacing: 0px;
+
+                // Material 3 Navigation Drawer
+                Rectangle {
+                    width: 250px;
+                    background: Theme.surface-container-low;
+
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 8px;
+
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            Text {
+                                text: "UTILITIES & SYSTEM";
+                                font-size: 11px;
+                                font-weight: 700;
+                                color: Theme.on-surface-muted;
+                            }
+                        }
+
+                        M3NavItem {
+                            text: "Dashboard";
+                            icon: "📊";
+                            is-active: root.active-tab == 0;
+                            clicked => { root.active-tab = 0; }
+                        }
+
+                        M3NavItem {
+                            text: "PowerToys Run";
+                            icon: "🔍";
+                            is-active: root.active-tab == 1;
+                            clicked => { root.active-tab = 1; }
+                        }
+
+                        M3NavItem {
+                            text: "FancyZones";
+                            icon: "📐";
+                            is-active: root.active-tab == 2;
+                            clicked => { root.active-tab = 2; }
+                        }
+
+                        M3NavItem {
+                            text: "General Settings";
+                            icon: "⚙️";
+                            is-active: root.active-tab == 3;
+                            clicked => { root.active-tab = 3; }
+                        }
+
+                        Rectangle { vertical-stretch: 1; }
+
+                        // Status badge card
+                        Rectangle {
+                            height: 44px;
+                            border-radius: 12px;
+                            background: Theme.surface-container;
+                            border-width: 1px;
+                            border-color: Theme.outline-variant;
+
+                            HorizontalLayout {
+                                padding-left: 14px;
+                                padding-right: 14px;
+                                spacing: 10px;
+                                alignment: center;
+
+                                Text {
+                                    text: "●";
+                                    font-size: 12px;
+                                    color: Theme.success;
+                                    vertical-alignment: center;
+                                }
+
+                                Text {
+                                    text: "Hyprland IPC Active";
+                                    font-size: 12px;
+                                    font-weight: 500;
+                                    color: Theme.on-surface-variant;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Vertical Divider
+                Rectangle {
+                    width: 1px;
+                    background: Theme.outline-variant;
+                }
+
+                // Main Content Pane
+                Rectangle {
+                    horizontal-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 24px;
+                        spacing: 0px;
+
+                        // TAB 0: DASHBOARD
+                        if root.active-tab == 0: VerticalLayout {
+                            spacing: 16px;
+
+                            // Hero Banner (Material 3 Surface Container High)
+                            Rectangle {
+                                height: 76px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container-high;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    spacing: 16px;
+                                    alignment: center;
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        spacing: 4px;
+                                        Text {
+                                            text: "Dashboard Overview";
+                                            font-size: 17px;
+                                            font-weight: 700;
+                                            color: Theme.on-surface;
+                                        }
+                                        Text {
+                                            text: "Material 3 desktop utilities running natively on Hyprland compositor.";
+                                            font-size: 12px;
+                                            color: Theme.on-surface-variant;
+                                        }
+                                    }
+
+                                    Rectangle { horizontal-stretch: 1; }
+
+                                    M3FilledButton {
+                                        text: "Save Config";
+                                        clicked => { root.save-config(); }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: "Active Utilities";
+                                font-size: 14px;
+                                font-weight: 700;
+                                color: Theme.primary;
+                            }
+
+                            // Card 1: PowerToys Run
+                            Rectangle {
+                                height: 86px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    spacing: 16px;
+                                    alignment: center;
+
+                                    Text {
+                                        text: "🔍";
+                                        font-size: 26px;
+                                        vertical-alignment: center;
+                                    }
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        spacing: 4px;
+                                        HorizontalLayout {
+                                            spacing: 10px;
+                                            Text {
+                                                text: "PowerToys Run";
+                                                font-size: 15px;
+                                                font-weight: 600;
+                                                color: Theme.on-surface;
+                                            }
+                                            Rectangle {
+                                                height: 20px;
+                                                border-radius: 6px;
+                                                background: Theme.surface-container-high;
+                                                border-width: 1px;
+                                                border-color: Theme.outline-variant;
+                                                HorizontalLayout {
+                                                    padding-left: 8px;
+                                                    padding-right: 8px;
+                                                    Text {
+                                                        text: "Super+Space";
+                                                        font-size: 11px;
+                                                        font-weight: 600;
+                                                        color: Theme.primary;
+                                                        vertical-alignment: center;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Text {
+                                            text: "Instant app launcher, window switcher, and math calculator";
+                                            font-size: 12px;
+                                            color: Theme.on-surface-variant;
+                                        }
+                                    }
+
+                                    Rectangle { horizontal-stretch: 1; }
+
+                                    M3TonalButton {
+                                        text: "Launch Overlay";
+                                        clicked => { root.launch-module("run"); }
+                                    }
+
+                                    M3Switch {
+                                        checked: root.run-enabled;
+                                        toggled(val) => {
+                                            root.run-enabled = val;
+                                            root.toggle-run(val);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Card 2: FancyZones
+                            Rectangle {
+                                height: 86px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    spacing: 16px;
+                                    alignment: center;
+
+                                    Text {
+                                        text: "📐";
+                                        font-size: 26px;
+                                        vertical-alignment: center;
+                                    }
+
+                                    VerticalLayout {
+                                        alignment: center;
+                                        spacing: 4px;
+                                        HorizontalLayout {
+                                            spacing: 10px;
+                                            Text {
+                                                text: "FancyZones";
+                                                font-size: 15px;
+                                                font-weight: 600;
+                                                color: Theme.on-surface;
+                                            }
+                                            Rectangle {
+                                                height: 20px;
+                                                border-radius: 6px;
+                                                background: Theme.surface-container-high;
+                                                border-width: 1px;
+                                                border-color: Theme.outline-variant;
+                                                HorizontalLayout {
+                                                    padding-left: 8px;
+                                                    padding-right: 8px;
+                                                    Text {
+                                                        text: "Super+Shift+Z";
+                                                        font-size: 11px;
+                                                        font-weight: 600;
+                                                        color: Theme.primary;
+                                                        vertical-alignment: center;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Text {
+                                            text: "Window snapping assistant and grid layout visualizer";
+                                            font-size: 12px;
+                                            color: Theme.on-surface-variant;
+                                        }
+                                    }
+
+                                    Rectangle { horizontal-stretch: 1; }
+
+                                    M3TonalButton {
+                                        text: "Launch Editor";
+                                        clicked => { root.launch-module("fancyzones"); }
+                                    }
+
+                                    M3Switch {
+                                        checked: root.fancyzones-enabled;
+                                        toggled(val) => {
+                                            root.fancyzones-enabled = val;
+                                            root.toggle-fancyzones(val);
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: "Planned Utilities";
+                                font-size: 14px;
+                                font-weight: 700;
+                                color: Theme.on-surface-muted;
+                            }
+
+                            // Planned Cards Row
+                            HorizontalLayout {
+                                spacing: 14px;
+
+                                Rectangle {
+                                    height: 76px;
+                                    horizontal-stretch: 1;
+                                    border-radius: Theme.shape-medium;
+                                    background: Theme.surface-container-low;
+                                    border-width: 1px;
+                                    border-color: Theme.outline-variant;
+
+                                    HorizontalLayout {
+                                        padding-left: 16px;
+                                        padding-right: 16px;
+                                        spacing: 14px;
+                                        alignment: center;
+                                        Text { text: "🎨"; font-size: 22px; }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            spacing: 2px;
+                                            Text { text: "Color Picker"; font-size: 14px; font-weight: 600; color: Theme.on-surface-variant; }
+                                            Text { text: "Hex/RGB screen eyedropper"; font-size: 12px; color: Theme.on-surface-muted; }
+                                        }
+                                        Rectangle { horizontal-stretch: 1; }
+                                        Text { text: "Planned"; font-size: 11px; font-weight: 600; color: Theme.tertiary; }
+                                    }
+                                }
+
+                                Rectangle {
+                                    height: 76px;
+                                    horizontal-stretch: 1;
+                                    border-radius: Theme.shape-medium;
+                                    background: Theme.surface-container-low;
+                                    border-width: 1px;
+                                    border-color: Theme.outline-variant;
+
+                                    HorizontalLayout {
+                                        padding-left: 16px;
+                                        padding-right: 16px;
+                                        spacing: 14px;
+                                        alignment: center;
+                                        Text { text: "📝"; font-size: 22px; }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            spacing: 2px;
+                                            Text { text: "Text Extractor (OCR)"; font-size: 14px; font-weight: 600; color: Theme.on-surface-variant; }
+                                            Text { text: "Instant screen region OCR"; font-size: 12px; color: Theme.on-surface-muted; }
+                                        }
+                                        Rectangle { horizontal-stretch: 1; }
+                                        Text { text: "Planned"; font-size: 11px; font-weight: 600; color: Theme.tertiary; }
+                                    }
+                                }
+                            }
+
+                            Rectangle { vertical-stretch: 1; }
+                        }
+
+                        // TAB 1: RUN SETTINGS
+                        if root.active-tab == 1: VerticalLayout {
+                            spacing: 16px;
+
+                            HorizontalLayout {
+                                alignment: center;
+                                Text {
+                                    text: "🔍 PowerToys Run Settings";
+                                    font-size: 20px;
+                                    font-weight: 700;
+                                    color: Theme.on-surface;
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                M3FilledButton {
+                                    text: "Test Run Overlay";
+                                    clicked => { root.launch-module("run"); }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 64px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Enable Math Calculator plugin"; font-size: 14px; color: Theme.on-surface; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    M3Switch {
+                                        checked: root.run-calc-enabled;
+                                        toggled(val) => { root.toggle-run-calc(val); }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 64px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Search and jump to open Hyprland windows"; font-size: 14px; color: Theme.on-surface; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    M3Switch {
+                                        checked: root.run-windows-enabled;
+                                        toggled(val) => { root.toggle-run-windows(val); }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 64px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Shell Command Execution (prefix queries with '>')"; font-size: 14px; color: Theme.on-surface; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "Active"; font-size: 12px; font-weight: 600; color: Theme.success; }
+                                }
+                            }
+
+                            Rectangle { vertical-stretch: 1; }
+                        }
+
+                        // TAB 2: FANCYZONES SETTINGS
+                        if root.active-tab == 2: VerticalLayout {
+                            spacing: 16px;
+
+                            HorizontalLayout {
+                                alignment: center;
+                                Text {
+                                    text: "📐 FancyZones Settings";
+                                    font-size: 20px;
+                                    font-weight: 700;
+                                    color: Theme.on-surface;
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                M3FilledButton {
+                                    text: "Launch Layout Editor";
+                                    clicked => { root.launch-module("fancyzones"); }
+                                }
+                            }
+
+                            Text {
+                                text: "Default Grid Preset";
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: Theme.on-surface-variant;
+                            }
+
+                            HorizontalLayout {
+                                spacing: 10px;
+
+                                M3FilterChip {
+                                    text: "3 Columns";
+                                    selected: root.active-preset == "3 Columns";
+                                    clicked => { root.select-preset("3 Columns"); }
+                                }
+
+                                M3FilterChip {
+                                    text: "2x2 Grid";
+                                    selected: root.active-preset == "2x2 Grid";
+                                    clicked => { root.select-preset("2x2 Grid"); }
+                                }
+
+                                M3FilterChip {
+                                    text: "Priority Grid";
+                                    selected: root.active-preset == "Priority Grid";
+                                    clicked => { root.select-preset("Priority Grid"); }
+                                }
+
+                                Rectangle { horizontal-stretch: 1; }
+                            }
+
+                            Rectangle {
+                                height: 64px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Zone Inner Padding"; font-size: 14px; color: Theme.on-surface; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "8 px"; font-size: 13px; font-weight: 600; color: Theme.primary; }
+                                }
+                            }
+
+                            Rectangle { vertical-stretch: 1; }
+                        }
+
+                        // TAB 3: GENERAL SETTINGS
+                        if root.active-tab == 3: VerticalLayout {
+                            spacing: 16px;
+
+                            Text {
+                                text: "⚙️ System & Compositor Information";
+                                font-size: 20px;
+                                font-weight: 700;
+                                color: Theme.on-surface;
+                            }
+
+                            Rectangle {
+                                height: 56px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Design System"; font-size: 14px; color: Theme.on-surface-variant; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "Material Design 3 (Material You)"; font-size: 13px; font-weight: 600; color: Theme.primary; }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 56px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Compositor Target"; font-size: 14px; color: Theme.on-surface-variant; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "Hyprland IPC (Native Wayland)"; font-size: 13px; font-weight: 600; color: Theme.success; }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 56px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "CPU Microarchitecture"; font-size: 14px; color: Theme.on-surface-variant; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "x86-64-v3 (AVX2, FMA, BMI1/2)"; font-size: 13px; font-weight: 600; color: Theme.primary; }
+                                }
+                            }
+
+                            Rectangle {
+                                height: 56px;
+                                border-radius: Theme.shape-medium;
+                                background: Theme.surface-container;
+                                border-width: 1px;
+                                border-color: Theme.outline-variant;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    alignment: center;
+                                    Text { text: "Configuration File"; font-size: 14px; color: Theme.on-surface-variant; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Text { text: "~/.config/powertoys/config.json"; font-size: 13px; color: Theme.secondary; }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 14px;
+                                alignment: start;
+
+                                M3OutlinedButton {
+                                    text: "Reset to Defaults";
+                                    clicked => { root.reset-config(); }
+                                }
+
+                                M3FilledButton {
+                                    text: "Save Configuration";
+                                    clicked => { root.save-config(); }
+                                }
+                            }
+
+                            Rectangle { vertical-stretch: 1; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

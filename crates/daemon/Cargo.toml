@@ -1,0 +1,22 @@
+[package]
+name = "powertoys-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "powertoys"
+path = "src/main.rs"
+
+[dependencies]
+powertoys-core.workspace = true
+powertoys-backend-mock.workspace = true
+powertoys-backend-hyprland.workspace = true
+powertoys-module-run.workspace = true
+powertoys-module-fancyzones.workspace = true
+powertoys-module-settings.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+
