@@ -1,3 +1,8 @@
 fn main() {
-    slint_build::compile("ui/settings.slint").expect("Failed to compile settings.slint");
+    let style = std::env::var("SLINT_STYLE").unwrap_or_else(|_| "material".into());
+    slint_build::compile_with_config(
+        "ui/settings.slint",
+        slint_build::CompilerConfiguration::new().with_style(style),
+    )
+    .expect("Failed to compile settings.slint");
 }

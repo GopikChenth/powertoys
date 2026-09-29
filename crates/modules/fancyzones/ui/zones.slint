@@ -1,3 +1,4 @@
+import { Button } from "std-widgets.slint";
 import { Theme } from "../../../theme/ui/theme.slint";
 
 export struct ZoneRect {
@@ -9,42 +10,10 @@ export struct ZoneRect {
     label: string,
 }
 
-component M3ZoneChip inherits Rectangle {
-    in property <string> text: "";
-    in property <bool> selected: false;
-    callback clicked();
-
-    height: 36px;
-    border-radius: 8px;
-    background: root.selected ? Theme.secondary-container : (touch.has-hover ? Theme.surface-container-high : transparent);
-    border-width: root.selected ? 0px : 1px;
-    border-color: Theme.outline-variant;
-
-    animate background { duration: 150ms; }
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        alignment: center;
-
-        Text {
-            text: root.text;
-            font-size: 13px;
-            font-weight: root.selected ? 600 : 500;
-            color: root.selected ? Theme.on-secondary-container : Theme.on-surface-variant;
-            vertical-alignment: center;
-        }
-    }
-
-    touch := TouchArea {
-        clicked => { root.clicked(); }
-    }
-}
-
 export component FancyZonesEditor inherits Window {
     title: "FancyZones Layout Editor";
-    width: 820px;
-    height: 540px;
+    width: 840px;
+    height: 560px;
     background: transparent;
     no-frame: true;
     always-on-top: true;
@@ -119,25 +88,25 @@ export component FancyZonesEditor inherits Window {
                 background: Theme.outline-variant;
             }
 
-            // Preset Chips Bar
+            // Preset Buttons Bar (Using official Material Button widgets)
             HorizontalLayout {
                 spacing: 10px;
 
-                M3ZoneChip {
+                Button {
                     text: "3 Columns";
-                    selected: root.active-preset == "3 Columns";
+                    primary: root.active-preset == "3 Columns";
                     clicked => { root.preset-selected("3 Columns"); }
                 }
 
-                M3ZoneChip {
+                Button {
                     text: "2x2 Grid";
-                    selected: root.active-preset == "2x2 Grid";
+                    primary: root.active-preset == "2x2 Grid";
                     clicked => { root.preset-selected("2x2 Grid"); }
                 }
 
-                M3ZoneChip {
+                Button {
                     text: "Priority Grid";
-                    selected: root.active-preset == "Priority Grid";
+                    primary: root.active-preset == "Priority Grid";
                     clicked => { root.preset-selected("Priority Grid"); }
                 }
 
