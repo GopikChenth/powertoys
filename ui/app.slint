@@ -126,6 +126,63 @@ component ColorFormatRow inherits Rectangle {
     }
 }
 
+component PowerToysPickerCard inherits Rectangle {
+    in property <color> fill-color;
+    in property <string> hex-value: "a8c7d2";
+    in property <string> color-name: "Sky blue";
+    callback clicked();
+
+    height: 84px;
+    background: #fbf9fa;
+    border-radius: 9px;
+    border-width: 1px;
+    border-color: #dcd8dc;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 16px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        spacing: 14px;
+        alignment: center;
+
+        // Swatch on Left
+        Rectangle {
+            width: 64px;
+            height: 64px;
+            border-radius: 6px;
+            background: root.fill-color;
+            border-width: 1px;
+            border-color: #00000018;
+        }
+
+        // Hex Code and Color Name on Right
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+
+            Text {
+                text: root.hex-value;
+                font-size: 21px;
+                font-weight: 700;
+                color: #1a191b;
+            }
+
+            Text {
+                text: root.color-name;
+                font-size: 14px;
+                font-weight: 500;
+                color: #7d7a80;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
 component SharpInput inherits Rectangle {
     in-out property <string> text <=> input.text;
     callback accepted(string);
@@ -182,6 +239,8 @@ export component MainWindow inherits Window {
     in-out property <int> selected-index: 0;
     in-out property <string> shortcut-text: "SUPER + SHIFT + C";
     in-out property <string> current-hex: "#B59EE6";
+    in-out property <string> current-hex-clean: "b59ee6";
+    in-out property <string> color-name: "Lavender";
     in-out property <string> current-rgb: "rgb(181, 158, 230)";
     in-out property <string> current-hsl: "hsl(259, 58%, 76%)";
     in-out property <string> current-cmyk: "cmyk(21%, 31%, 0%, 10%)";
@@ -417,47 +476,40 @@ export component MainWindow inherits Window {
                                         color: #f0eff1;
                                     }
 
-                                    HorizontalLayout {
-                                        spacing: 20px;
-                                        alignment: stretch;
+                                    // PowerToys Iconic Picker Card (Matching Screenshot)
+                                    PowerToysPickerCard {
+                                        fill-color: root.current-color;
+                                        hex-value: root.current-hex-clean;
+                                        color-name: root.color-name;
+                                        clicked => { root.copy-hex-clicked(root.current-hex); }
+                                    }
 
-                                        // Large Color Swatch
-                                        Rectangle {
-                                            width: 120px;
-                                            height: 176px;
-                                            background: root.current-color;
-                                            border-width: 1px;
-                                            border-color: #38343c;
+                                    // Format Rows Column
+                                    VerticalLayout {
+                                        spacing: 8px;
+
+                                        ColorFormatRow {
+                                            label: "HEX";
+                                            value: root.current-hex;
+                                            copy_clicked => { root.copy-hex-clicked(root.current-hex); }
                                         }
 
-                                        // Format Rows Column
-                                        VerticalLayout {
-                                            spacing: 8px;
-                                            horizontal-stretch: 1;
+                                        ColorFormatRow {
+                                            label: "RGB";
+                                            value: root.current-rgb;
+                                            copy_clicked => { root.copy-rgb-clicked(root.current-rgb); }
+                                        }
 
-                                            ColorFormatRow {
-                                                label: "HEX";
-                                                value: root.current-hex;
-                                                copy_clicked => { root.copy-hex-clicked(root.current-hex); }
-                                            }
+                                        ColorFormatRow {
+                                            label: "HSL";
+                                            value: root.current-hsl;
+                                            copy_clicked => { root.copy-hsl-clicked(root.current-hsl); }
+                                        }
 
-                                            ColorFormatRow {
-                                                label: "RGB";
-                                                value: root.current-rgb;
-                                                copy_clicked => { root.copy-rgb-clicked(root.current-rgb); }
-                                            }
-
-                                            ColorFormatRow {
-                                                label: "HSL";
-                                                value: root.current-hsl;
-                                                copy_clicked => { root.copy-hsl-clicked(root.current-hsl); }
-                                            }
-
-                                            ColorFormatRow {
-                                                label: "CMYK";
-                                                value: root.current-cmyk;
-                                                copy_clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
-                                            }
+                                        ColorFormatRow {
+                                            label: "CMYK";
+                                            value: root.current-cmyk;
+                                            copy_clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
                                         }
                                     }
                                 }
@@ -519,4 +571,456 @@ export component MainWindow inherits Window {
             }
         }
     }
+
+component ColorCardItem inherits Rectangle {
+    in property <string> label: "";
+    in property <string> value: "";
+    callback copy_clicked();
+
+    height: 40px;
+    background: touch.has-hover ? #fbfbfb : #ffffff;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: touch.has-hover ? #d2d0d2 : #e6e4e6;
+
+    animate background { duration: 100ms; }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 10px;
+        alignment: stretch;
+
+        // Label
+        Text {
+            width: 48px;
+            text: root.label;
+            font-size: 13px;
+            font-weight: 600;
+            color: #727072;
+            vertical-alignment: center;
+        }
+
+        // Value
+        Text {
+            text: root.value;
+            font-size: 14px;
+            font-weight: 500;
+            color: #202020;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+
+        // Copy Icon Button (Fluent overlapping rectangles)
+        Rectangle {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            background: btn_touch.has-hover ? #ececec : transparent;
+
+            Rectangle {
+                x: 7px;
+                y: 6px;
+                width: 10px;
+                height: 12px;
+                border-width: 1.5px;
+                border-color: #666666;
+                border-radius: 2px;
+                background: transparent;
+            }
+
+            Rectangle {
+                x: 10px;
+                y: 9px;
+                width: 10px;
+                height: 12px;
+                border-width: 1.5px;
+                border-color: #555555;
+                border-radius: 2px;
+                background: #ffffff;
+            }
+
+            btn_touch := TouchArea {
+                clicked => { root.copy_clicked(); }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.copy_clicked(); }
+    }
+}
+
+component HistoryDot inherits Rectangle {
+    in property <color> fill-color;
+    in property <bool> is-active: false;
+    callback clicked();
+
+    width: 22px;
+    height: 22px;
+
+    // Outer active ring
+    if root.is-active: Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        border-width: 2px;
+        border-color: #7da57d;
+        background: transparent;
+    }
+
+    // Inner circle
+    Rectangle {
+        x: 3px;
+        y: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: root.fill-color;
+        border-width: 1px;
+        border-color: #00000015;
+    }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
+component ShadeStrip inherits Rectangle {
+    in property <color> s1;
+    in property <color> s2;
+    in property <color> s3;
+    in property <color> s4;
+    in property <color> s5;
+    callback shade_clicked(int);
+
+    width: 18px;
+    height: 184px;
+    border-radius: 4px;
+    clip: true;
+    border-width: 1px;
+    border-color: #d8d8d8;
+
+    VerticalLayout {
+        spacing: 0px;
+        Rectangle { height: 36px; background: root.s1; TouchArea { clicked => { root.shade_clicked(0); } } }
+        Rectangle { height: 37px; background: root.s2; TouchArea { clicked => { root.shade_clicked(1); } } }
+        Rectangle { height: 38px; background: root.s3; TouchArea { clicked => { root.shade_clicked(2); } } }
+        Rectangle { height: 37px; background: root.s4; TouchArea { clicked => { root.shade_clicked(3); } } }
+        Rectangle { height: 36px; background: root.s5; TouchArea { clicked => { root.shade_clicked(4); } } }
+    }
+}
+
+export component PickerPopupWindow inherits Window {
+    title: "Color Picker";
+    no-frame: true;
+    background: transparent;
+    always-on-top: true;
+    width: 440px;
+    height: 350px;
+
+    in-out property <string> hex: "9cb687";
+    in-out property <string> rgb: "rgb(156, 182, 135)";
+    in-out property <string> hsl: "hsl(93, 24%, 62%)";
+    in-out property <string> hsv: "hsv(93, 26%, 71%)";
+    in-out property <color> current-color: #9cb687;
+    in-out property <[HistoryColor]> history: [];
+    in-out property <[color]> shades: [#b8cfab, #abc39c, #9cb687, #819b6e, #677e55];
+    in-out property <bool> show-copied-toast: true;
+
+    callback close-requested();
+    callback pick-requested();
+    callback settings-requested();
+    callback copy-hex();
+    callback copy-rgb();
+    callback copy-hsl();
+    callback copy-hsv();
+    callback select-swatch(string);
+    callback select-shade(int);
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #f4f3f4;
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: #d4d2d4;
+        clip: true;
+
+        // Titlebar
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 100%;
+            height: 36px;
+            background: #f4f3f4;
+
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 12px;
+                alignment: stretch;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+
+                    Rectangle {
+                        width: 16px;
+                        height: 16px;
+                        background: #0078d4;
+                        border-radius: 3px;
+                        y: 10px;
+
+                        Text {
+                            text: "✒";
+                            font-size: 11px;
+                            color: #ffffff;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Text {
+                        text: "Color Picker";
+                        font-size: 13px;
+                        font-weight: 500;
+                        color: #2b2b2b;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Rectangle { horizontal-stretch: 1; }
+
+                Rectangle {
+                    width: 26px;
+                    height: 26px;
+                    y: 5px;
+                    border-radius: 4px;
+                    background: close_touch.has-hover ? #e4e2e4 : transparent;
+
+                    Text {
+                        text: "✕";
+                        font-size: 12px;
+                        font-weight: 500;
+                        color: #555555;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    close_touch := TouchArea {
+                        clicked => { root.close-requested(); }
+                    }
+                }
+            }
+        }
+
+        // Toolbar
+        Rectangle {
+            x: 0px;
+            y: 36px;
+            width: 100%;
+            height: 44px;
+            background: #f4f3f4;
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 12px;
+                alignment: center;
+
+                // Pick Button
+                Rectangle {
+                    width: 76px;
+                    height: 30px;
+                    background: pick_touch.has-hover ? #ffffff : #fbfbfb;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: #d2d0d2;
+
+                    HorizontalLayout {
+                        alignment: center;
+                        spacing: 6px;
+
+                        Text {
+                            text: "✒";
+                            font-size: 13px;
+                            color: #333333;
+                            vertical-alignment: center;
+                        }
+
+                        Text {
+                            text: "Pick";
+                            font-size: 13px;
+                            font-weight: 500;
+                            color: #222222;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    pick_touch := TouchArea {
+                        clicked => { root.pick-requested(); }
+                    }
+                }
+
+                // History Dots Row
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: center;
+                    horizontal-stretch: 1;
+
+                    for item[i] in root.history: HistoryDot {
+                        fill-color: item.col;
+                        is-active: i == 0;
+                        clicked => { root.select-swatch(item.hex); }
+                    }
+                }
+
+                // Settings Button
+                Rectangle {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 4px;
+                    background: set_touch.has-hover ? #e4e2e4 : transparent;
+
+                    Text {
+                        text: "⚙";
+                        font-size: 16px;
+                        color: #555555;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    set_touch := TouchArea {
+                        clicked => { root.settings-requested(); }
+                    }
+                }
+            }
+        }
+
+        // Handle Bar below Toolbar
+        Rectangle {
+            x: 150px;
+            y: 78px;
+            width: 140px;
+            height: 2px;
+            border-radius: 1px;
+            background: #888888;
+        }
+
+        // Separator Line
+        Rectangle {
+            x: 0px;
+            y: 84px;
+            width: 100%;
+            height: 1px;
+            background: #e4e2e4;
+        }
+
+        // Main Content: Shades + Format Cards
+        Rectangle {
+            x: 0px;
+            y: 85px;
+            width: 100%;
+            height: 221px;
+            background: #f4f3f4;
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 14px;
+                padding-bottom: 14px;
+                spacing: 12px;
+                alignment: stretch;
+
+                ShadeStrip {
+                    s1: root.shades[0];
+                    s2: root.shades[1];
+                    s3: root.shades[2];
+                    s4: root.shades[3];
+                    s5: root.shades[4];
+                    shade_clicked(idx) => { root.select-shade(idx); }
+                }
+
+                VerticalLayout {
+                    spacing: 8px;
+                    horizontal-stretch: 1;
+
+                    ColorCardItem {
+                        label: "HEX";
+                        value: root.hex;
+                        copy_clicked => { root.copy-hex(); }
+                    }
+
+                    ColorCardItem {
+                        label: "RGB";
+                        value: root.rgb;
+                        copy_clicked => { root.copy-rgb(); }
+                    }
+
+                    ColorCardItem {
+                        label: "HSL";
+                        value: root.hsl;
+                        copy_clicked => { root.copy-hsl(); }
+                    }
+
+                    ColorCardItem {
+                        label: "HSV";
+                        value: root.hsv;
+                        copy_clicked => { root.copy-hsv(); }
+                    }
+                }
+            }
+        }
+
+        // Bottom Toast Banner (Teal) - Glued to bottom edge
+        if root.show-copied-toast: Rectangle {
+            x: 0px;
+            y: parent.height - 44px;
+            width: 100%;
+            height: 44px;
+            background: #2b8396;
+
+            HorizontalLayout {
+                alignment: center;
+                spacing: 8px;
+
+                Rectangle {
+                    width: 18px;
+                    height: 18px;
+
+                    Rectangle {
+                        x: 2px;
+                        y: 1px;
+                        width: 9px;
+                        height: 11px;
+                        border-width: 1.5px;
+                        border-color: #ffffff;
+                        border-radius: 2px;
+                        background: transparent;
+                    }
+
+                    Rectangle {
+                        x: 5px;
+                        y: 4px;
+                        width: 9px;
+                        height: 11px;
+                        border-width: 1.5px;
+                        border-color: #ffffff;
+                        border-radius: 2px;
+                        background: #2b8396;
+                    }
+                }
+
+                Text {
+                    text: "Copied to clipboard";
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #ffffff;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
 

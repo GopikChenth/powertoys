@@ -28,7 +28,14 @@ impl HyprlandManager {
         let hypr_dir = PathBuf::from(&home).join(".config").join("hypr");
         let powertoys_conf = hypr_dir.join("powertoys.conf");
         let bind_content = format!(
-            "# Auto-generated PowerToys Hyprland Keybinds\nbind = {}, {}, exec, {}\n",
+            "# Auto-generated PowerToys Hyprland Keybinds\n\
+             bind = {}, {}, exec, {}\n\n\
+             # PowerToys Hovering Color Picker Popup Rules\n\
+             windowrulev2 = float, title:^(Color Picker)$\n\
+             windowrulev2 = pin, title:^(Color Picker)$\n\
+             windowrulev2 = center, title:^(Color Picker)$\n\
+             windowrulev2 = size 440 350, title:^(Color Picker)$\n\
+             windowrulev2 = noborder, title:^(Color Picker)$\n",
             if mods.is_empty() { "SUPER".to_string() } else { mods },
             key,
             exec_command
@@ -52,7 +59,12 @@ impl HyprlandManager {
         let _ = std::fs::create_dir_all(&powertoys_dir);
         let powertoys_lua = powertoys_dir.join("powertoys.lua");
         let lua_content = format!(
-            "-- Auto-generated PowerToys Hyprland Lua Keybinds\nhl.bind(\"{}\", hl.dsp.exec_cmd(\"{}\"))\n",
+            "-- Auto-generated PowerToys Hyprland Lua Keybinds\n\
+             hl.bind(\"{}\", hl.dsp.exec_cmd(\"{}\"))\n\n\
+             -- PowerToys Color Picker Popup Window Rule\n\
+             pcall(function()\n\
+                 hl.window_rule({{ match = {{ title = \"Color Picker\" }}, float = true, pin = true, size = \"440 350\", center = true }})\n\
+             end)\n",
             lua_combo, exec_command
         );
         let _ = std::fs::write(&powertoys_lua, lua_content);

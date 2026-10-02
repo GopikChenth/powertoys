@@ -9,7 +9,7 @@ use core::config::AppConfig;
 use core::hyprland::HyprlandManager;
 use core::ipc::{send_ipc_message, start_ipc_listener};
 use modules::color_picker::model::{format_color, hex_to_rgb};
-use modules::color_picker::{copy_to_clipboard, notify, pick_color_sync};
+use modules::color_picker::{copy_to_clipboard, pick_color_sync};
 
 slint::include_modules!();
 
@@ -31,6 +31,8 @@ fn update_history_ui(app: &MainWindow, history_hexes: &[String]) {
 fn apply_color_to_ui(app: &MainWindow, hex: &str) {
     if let Some(formats) = format_color(hex) {
         app.set_current_hex(SharedString::from(&formats.hex));
+        app.set_current_hex_clean(SharedString::from(&formats.hex_clean));
+        app.set_color_name(SharedString::from(&formats.color_name));
         app.set_current_rgb(SharedString::from(&formats.rgb));
         app.set_current_hsl(SharedString::from(&formats.hsl));
         app.set_current_cmyk(SharedString::from(&formats.cmyk));
@@ -38,20 +40,215 @@ fn apply_color_to_ui(app: &MainWindow, hex: &str) {
     }
 }
 
+fn apply_popup_color(popup: &PickerPopupWindow, hex: &str, history_hexes: &[String]) {
+    if let Some(formats) = format_color(hex) {
+        popup.set_hex(SharedString::from(&formats.hex_clean));
+        popup.set_rgb(SharedString::from(&formats.rgb));
+        popup.set_hsl(SharedString::from(&formats.hsl));
+        popup.set_hsv(SharedString::from(&formats.hsv));
+        popup.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
+
+        // Stepped shades
+        let shade_colors: Vec<Color> = formats
+            .shades
+            .iter()
+            .map(|&(sr, sg, sb)| Color::from_rgb_u8(sr, sg, sb))
+            .collect();
+        popup.set_shades(ModelRc::from(Rc::new(VecModel::from(shade_colors))));
+
+        // History dots
+        let history_items: Vec<HistoryColor> = history_hexes
+            .iter()
+            .take(8)
+            .map(|h| {
+                let (hr, hg, hb) = hex_to_rgb(h).unwrap_or((181, 158, 230));
+                HistoryColor {
+                    hex: SharedString::from(h),
+                    col: Color::from_rgb_u8(hr, hg, hb),
+                }
+            })
+            .collect();
+        popup.set_history(ModelRc::from(Rc::new(VecModel::from(history_items))));
+        popup.set_show_copied_toast(true);
+    }
+}
+
+fn show_popup_window(initial_hex: &str) {
+    if let Ok(popup) = PickerPopupWindow::new() {
+        let mut cfg = AppConfig::load();
+        cfg.add_history_color(initial_hex);
+
+        let active_hex = Arc::new(Mutex::new(initial_hex.to_string()));
+        let shades_data = Arc::new(Mutex::new(
+            format_color(initial_hex).map(|f| f.shades).unwrap_or_default(),
+        ));
+
+        apply_popup_color(&popup, initial_hex, &cfg.color_picker.history);
+        copy_to_clipboard(initial_hex);
+
+        // Close
+        let p_weak = popup.as_weak();
+        popup.on_close_requested(move || {
+            if let Some(p) = p_weak.upgrade() {
+                let _ = p.hide();
+            }
+        });
+
+        // Settings
+        let p_weak = popup.as_weak();
+        popup.on_settings_requested(move || {
+            if let Some(p) = p_weak.upgrade() {
+                let _ = p.hide();
+            }
+            let _ = std::process::Command::new("powertoys").arg("--gui").spawn();
+        });
+
+        // Pick again
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        let s_data = Arc::clone(&shades_data);
+        popup.on_pick_requested(move || {
+            let pw = p_weak.clone();
+            let ah = Arc::clone(&a_hex);
+            let sd = Arc::clone(&s_data);
+
+            if let Some(p) = pw.upgrade() {
+                let _ = p.hide();
+            }
+
+            std::thread::spawn(move || {
+                if let Some(new_hex) = pick_color_sync() {
+                    let mut config = AppConfig::load();
+                    config.add_history_color(&new_hex);
+
+                    let nh_copy = new_hex.clone();
+                    let _ = send_ipc_message(&format!("PICK_COLOR:{}", new_hex));
+                    copy_to_clipboard(&new_hex);
+
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(p) = pw.upgrade() {
+                            *ah.lock().unwrap() = nh_copy.clone();
+                            if let Some(f) = format_color(&nh_copy) {
+                                *sd.lock().unwrap() = f.shades;
+                            }
+                            apply_popup_color(&p, &nh_copy, &config.color_picker.history);
+                            let _ = p.show();
+                        }
+                    });
+                }
+            });
+        });
+
+        // Copy HEX
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        popup.on_copy_hex(move || {
+            let h = a_hex.lock().unwrap().clone();
+            copy_to_clipboard(&h);
+            if let Some(p) = p_weak.upgrade() {
+                p.set_show_copied_toast(true);
+            }
+        });
+
+        // Copy RGB
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        popup.on_copy_rgb(move || {
+            let h = a_hex.lock().unwrap().clone();
+            if let Some(f) = format_color(&h) {
+                copy_to_clipboard(&f.rgb);
+            }
+            if let Some(p) = p_weak.upgrade() {
+                p.set_show_copied_toast(true);
+            }
+        });
+
+        // Copy HSL
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        popup.on_copy_hsl(move || {
+            let h = a_hex.lock().unwrap().clone();
+            if let Some(f) = format_color(&h) {
+                copy_to_clipboard(&f.hsl);
+            }
+            if let Some(p) = p_weak.upgrade() {
+                p.set_show_copied_toast(true);
+            }
+        });
+
+        // Copy HSV
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        popup.on_copy_hsv(move || {
+            let h = a_hex.lock().unwrap().clone();
+            if let Some(f) = format_color(&h) {
+                copy_to_clipboard(&f.hsv);
+            }
+            if let Some(p) = p_weak.upgrade() {
+                p.set_show_copied_toast(true);
+            }
+        });
+
+        // Select Swatch from dots
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        let s_data = Arc::clone(&shades_data);
+        popup.on_select_swatch(move |hex_str| {
+            let text = hex_str.to_string();
+            let config = AppConfig::load();
+            *a_hex.lock().unwrap() = text.clone();
+            if let Some(f) = format_color(&text) {
+                *s_data.lock().unwrap() = f.shades;
+            }
+            copy_to_clipboard(&text);
+            if let Some(p) = p_weak.upgrade() {
+                apply_popup_color(&p, &text, &config.color_picker.history);
+            }
+        });
+
+        // Select Shade from strip
+        let p_weak = popup.as_weak();
+        let a_hex = Arc::clone(&active_hex);
+        let s_data = Arc::clone(&shades_data);
+        popup.on_select_shade(move |idx| {
+            let shades = s_data.lock().unwrap().clone();
+            if let Some(&(sr, sg, sb)) = shades.get(idx as usize) {
+                let hex_str = format!("#{:02X}{:02X}{:02X}", sr, sg, sb);
+                *a_hex.lock().unwrap() = hex_str.clone();
+                copy_to_clipboard(&hex_str);
+                let config = AppConfig::load();
+                if let Some(p) = p_weak.upgrade() {
+                    apply_popup_color(&p, &hex_str, &config.color_picker.history);
+                }
+            }
+        });
+
+        let _ = popup.run();
+    }
+}
+
 fn handle_cli_args() -> bool {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && (args[1] == "--pick" || args[1] == "-p") {
-        if let Some(hex) = pick_color_sync() {
-            // Try to notify the running GUI instance via IPC
-            let ipc_msg = format!("PICK_COLOR:{}", hex);
-            if send_ipc_message(&ipc_msg).is_err() {
-                // GUI is not running; persist to config and notify
-                let mut cfg = AppConfig::load();
-                cfg.add_history_color(&hex);
-                notify("PowerToys Color Picker", &format!("Picked {} (Copied to clipboard)", hex));
-            }
+    if args.len() > 1 {
+        if args[1] == "--popup" && args.len() > 2 {
+            show_popup_window(&args[2]);
+            return true;
         }
-        return true;
+
+        if args[1] == "--pick" || args[1] == "-p" {
+            if let Some(hex) = pick_color_sync() {
+                // 1. Notify running GUI instance via IPC if active
+                let _ = send_ipc_message(&format!("PICK_COLOR:{}", hex));
+
+                // 2. Display the hovering pop-up window
+                show_popup_window(&hex);
+            }
+            return true;
+        }
+
+        if args[1] == "--gui" {
+            return false;
+        }
     }
     false
 }
@@ -93,7 +290,10 @@ fn main() -> Result<(), slint::PlatformError> {
                     config.add_history_color(&clean_hex);
                     update_history_ui(&w, &config.color_picker.history);
 
-                    w.set_status_text(SharedString::from(format!("✓ Picked & copied {} to clipboard", clean_hex)));
+                    let color_name = modules::color_picker::model::format_color(&clean_hex)
+                        .map(|f| f.color_name)
+                        .unwrap_or_else(|| "Color".to_string());
+                    w.set_status_text(SharedString::from(format!("✓ Picked {} ({})", clean_hex, color_name)));
                 }
             });
         }
@@ -116,17 +316,27 @@ fn main() -> Result<(), slint::PlatformError> {
 
         std::thread::spawn(move || {
             if let Some(hex) = pick_color_sync() {
+                let hex_copy = hex.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(w) = weak.upgrade() {
-                        apply_color_to_ui(&w, &hex);
+                        apply_color_to_ui(&w, &hex_copy);
 
                         let mut config = cfg_inner.lock().unwrap();
-                        config.add_history_color(&hex);
+                        config.add_history_color(&hex_copy);
                         update_history_ui(&w, &config.color_picker.history);
 
-                        w.set_status_text(SharedString::from(format!("✓ Picked & copied {} to clipboard", hex)));
+                        let color_name = modules::color_picker::model::format_color(&hex_copy)
+                            .map(|f| f.color_name)
+                            .unwrap_or_else(|| "Color".to_string());
+                        w.set_status_text(SharedString::from(format!("✓ Picked {} ({})", hex_copy, color_name)));
                     }
                 });
+
+                // Spawn hovering popup window
+                let _ = std::process::Command::new("powertoys")
+                    .arg("--popup")
+                    .arg(&hex)
+                    .spawn();
             }
         });
     });
@@ -182,7 +392,11 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut config = cfg_clone.lock().unwrap();
             config.color_picker.last_color = text.clone();
             config.save();
-            w.set_status_text(SharedString::from(format!("✓ Swatch {} selected & copied", text)));
+
+            let color_name = modules::color_picker::model::format_color(&text)
+                .map(|f| f.color_name)
+                .unwrap_or_else(|| "Color".to_string());
+            w.set_status_text(SharedString::from(format!("✓ Selected {} ({})", text, color_name)));
         }
     });
 
