@@ -27,12 +27,14 @@ component SidebarItem inherits Rectangle {
         padding-left: 18px;
         padding-right: 18px;
         spacing: 12px;
-        alignment: start;
+        alignment: center;
 
-        if root.icon != "": Text {
-            text: root.icon;
-            font-size: 18px;
-            vertical-alignment: center;
+        // Clean vector color swatch
+        Rectangle {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            background: root.is-active ? #b59ee6 : #6e6b72;
         }
 
         Text {
@@ -285,13 +287,19 @@ export component MainWindow inherits Window {
                         padding-left: 12px;
                         padding-top: 8px;
                         padding-bottom: 12px;
-                        spacing: 10px;
-                        alignment: start;
+                        spacing: 12px;
+                        alignment: center;
 
-                        Text {
-                            text: "⚡";
-                            font-size: 22px;
-                            vertical-alignment: center;
+                        // Modern Vector Logo Mark
+                        Rectangle {
+                            width: 20px;
+                            height: 20px;
+                            background: transparent;
+
+                            Rectangle { x: 0px; y: 0px; width: 9px; height: 9px; border-radius: 2px; background: #0078d4; }
+                            Rectangle { x: 11px; y: 0px; width: 9px; height: 9px; border-radius: 2px; background: #2b8396; }
+                            Rectangle { x: 0px; y: 11px; width: 9px; height: 9px; border-radius: 2px; background: #b59ee6; }
+                            Rectangle { x: 11px; y: 11px; width: 9px; height: 9px; border-radius: 2px; background: #50e3c2; }
                         }
 
                         Text {
@@ -325,7 +333,6 @@ export component MainWindow inherits Window {
                     // Module 0: Colour Picker
                     SidebarItem {
                         text: "Colour Picker";
-                        icon: "🎨";
                         is-active: root.selected-index == 0;
                         clicked => { root.selected-index = 0; }
                     }
@@ -414,7 +421,7 @@ export component MainWindow inherits Window {
                                     Rectangle { horizontal-stretch: 1; }
 
                                     SharpButton {
-                                        text: "🎯 Pick Color (Hyprpicker)";
+                                        text: "Pick Color (Hyprpicker)";
                                         primary: true;
                                         clicked => { root.pick-color-clicked(); }
                                     }
@@ -772,12 +779,13 @@ export component PickerPopupWindow inherits Window {
                         border-radius: 3px;
                         y: 10px;
 
-                        Text {
-                            text: "✒";
-                            font-size: 11px;
-                            color: #ffffff;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
+                        Rectangle {
+                            x: 4px;
+                            y: 4px;
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 1px;
+                            background: #ffffff;
                         }
                     }
 
@@ -800,9 +808,9 @@ export component PickerPopupWindow inherits Window {
                     background: close_touch.has-hover ? #e4e2e4 : transparent;
 
                     Text {
-                        text: "✕";
-                        font-size: 12px;
-                        font-weight: 500;
+                        text: "X";
+                        font-size: 11px;
+                        font-weight: 600;
                         color: #555555;
                         horizontal-alignment: center;
                         vertical-alignment: center;
@@ -842,11 +850,11 @@ export component PickerPopupWindow inherits Window {
                         alignment: center;
                         spacing: 6px;
 
-                        Text {
-                            text: "✒";
-                            font-size: 13px;
-                            color: #333333;
-                            vertical-alignment: center;
+                        Rectangle {
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 2px;
+                            background: #0078d4;
                         }
 
                         Text {
@@ -876,19 +884,20 @@ export component PickerPopupWindow inherits Window {
                     }
                 }
 
-                // Settings Button
+                // Settings Button (Vector 3-dots)
                 Rectangle {
                     width: 28px;
                     height: 28px;
                     border-radius: 4px;
                     background: set_touch.has-hover ? #e4e2e4 : transparent;
 
-                    Text {
-                        text: "⚙";
-                        font-size: 16px;
-                        color: #555555;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
+                    HorizontalLayout {
+                        spacing: 3px;
+                        alignment: center;
+
+                        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #555555; }
+                        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #555555; }
+                        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #555555; }
                     }
 
                     set_touch := TouchArea {

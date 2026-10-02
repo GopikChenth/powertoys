@@ -293,7 +293,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     let color_name = modules::color_picker::model::format_color(&clean_hex)
                         .map(|f| f.color_name)
                         .unwrap_or_else(|| "Color".to_string());
-                    w.set_status_text(SharedString::from(format!("✓ Picked {} ({})", clean_hex, color_name)));
+                    w.set_status_text(SharedString::from(format!("Picked {} ({})", clean_hex, color_name)));
                 }
             });
         }
@@ -328,7 +328,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         let color_name = modules::color_picker::model::format_color(&hex_copy)
                             .map(|f| f.color_name)
                             .unwrap_or_else(|| "Color".to_string());
-                        w.set_status_text(SharedString::from(format!("✓ Picked {} ({})", hex_copy, color_name)));
+                        w.set_status_text(SharedString::from(format!("Picked {} ({})", hex_copy, color_name)));
                     }
                 });
 
@@ -347,7 +347,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let text = hex.to_string();
         copy_to_clipboard(&text);
         if let Some(w) = app_weak.upgrade() {
-            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+            w.set_status_text(SharedString::from(format!("Copied {} to clipboard", text)));
         }
     });
 
@@ -357,7 +357,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let text = rgb.to_string();
         copy_to_clipboard(&text);
         if let Some(w) = app_weak.upgrade() {
-            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+            w.set_status_text(SharedString::from(format!("Copied {} to clipboard", text)));
         }
     });
 
@@ -367,7 +367,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let text = hsl.to_string();
         copy_to_clipboard(&text);
         if let Some(w) = app_weak.upgrade() {
-            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+            w.set_status_text(SharedString::from(format!("Copied {} to clipboard", text)));
         }
     });
 
@@ -377,7 +377,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let text = cmyk.to_string();
         copy_to_clipboard(&text);
         if let Some(w) = app_weak.upgrade() {
-            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+            w.set_status_text(SharedString::from(format!("Copied {} to clipboard", text)));
         }
     });
 
@@ -396,7 +396,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let color_name = modules::color_picker::model::format_color(&text)
                 .map(|f| f.color_name)
                 .unwrap_or_else(|| "Color".to_string());
-            w.set_status_text(SharedString::from(format!("✓ Selected {} ({})", text, color_name)));
+            w.set_status_text(SharedString::from(format!("Selected {} ({})", text, color_name)));
         }
     });
 
@@ -413,12 +413,12 @@ fn main() -> Result<(), slint::PlatformError> {
 
                 if let Some(w) = app_weak.upgrade() {
                     w.set_shortcut_text(SharedString::from(&s));
-                    w.set_status_text(SharedString::from(format!("✓ Bound shortcut '{}' to Hyprland!", s)));
+                    w.set_status_text(SharedString::from(format!("Bound shortcut '{}' to Hyprland", s)));
                 }
             }
             Err(err) => {
                 if let Some(w) = app_weak.upgrade() {
-                    w.set_status_text(SharedString::from(format!("✗ Failed to bind: {}", err)));
+                    w.set_status_text(SharedString::from(format!("Failed to bind: {}", err)));
                 }
             }
         }
