@@ -5,17 +5,17 @@ component SidebarItem inherits Rectangle {
     callback clicked();
 
     height: 48px;
-    background: is-active ? #383442 : (touch.has-hover ? #2a2730 : transparent);
+    background: is-active ? #282629 : (touch.has-hover ? #1f1e21 : transparent);
 
     animate background { duration: 150ms; }
 
-    // Sharp left active accent line
+    // Sharp left active accent line matching Antigravity
     Rectangle {
         x: 0px;
         y: 0px;
         width: 3px;
         height: parent.height;
-        background: root.is-active ? #d0bcff : transparent;
+        background: root.is-active ? #b59ee6 : transparent;
     }
 
     HorizontalLayout {
@@ -34,7 +34,7 @@ component SidebarItem inherits Rectangle {
             text: root.text;
             font-size: 15px;
             font-weight: root.is-active ? 600 : 500;
-            color: root.is-active ? #eaddff : (touch.has-hover ? #e6e0e9 : #cac4d0);
+            color: root.is-active ? #f0eff1 : (touch.has-hover ? #ecebec : #a6a4a8);
             vertical-alignment: center;
         }
     }
@@ -46,7 +46,7 @@ component SidebarItem inherits Rectangle {
 
 export component MainWindow inherits Window {
     title: "PowerToys";
-    background: #141218;
+    background: #141315; // Antigravity neutral obsidian black
 
     in-out property <int> selected-index: 0;
     callback close-requested();
@@ -68,7 +68,7 @@ export component MainWindow inherits Window {
             // Sidebar
             Rectangle {
                 width: 260px;
-                background: #1d1b20;
+                background: #181719; // Antigravity sidebar dark neutral
 
                 VerticalLayout {
                     padding: 16px;
@@ -92,7 +92,7 @@ export component MainWindow inherits Window {
                             text: "PowerToys";
                             font-size: 20px;
                             font-weight: 700;
-                            color: #e6e0e9;
+                            color: #f0eff1;
                             vertical-alignment: center;
                         }
                     }
@@ -100,7 +100,7 @@ export component MainWindow inherits Window {
                     // Separator
                     Rectangle {
                         height: 1px;
-                        background: #332f3b;
+                        background: #252327;
                     }
 
                     // Navigation Category Label
@@ -112,11 +112,11 @@ export component MainWindow inherits Window {
                             text: "FEATURES";
                             font-size: 11px;
                             font-weight: 700;
-                            color: #938f99;
+                            color: #8a888c;
                         }
                     }
 
-                    // First feature: Colour Picker (Box design, no curves)
+                    // First feature: Colour Picker
                     SidebarItem {
                         text: "Colour Picker";
                         icon: "🎨";
@@ -133,7 +133,7 @@ export component MainWindow inherits Window {
                         Text {
                             text: "Press Esc to exit";
                             font-size: 12px;
-                            color: #79747e;
+                            color: #6d6b6e;
                         }
                     }
                 }
@@ -142,7 +142,7 @@ export component MainWindow inherits Window {
             // Divider Line
             Rectangle {
                 width: 1px;
-                background: #332f3b;
+                background: #252327;
             }
 
             // Main Content Area
@@ -157,13 +157,13 @@ export component MainWindow inherits Window {
                         text: "Colour Picker";
                         font-size: 32px;
                         font-weight: 700;
-                        color: #e6e0e9;
+                        color: #f0eff1;
                     }
 
                     Text {
                         text: "Quick and simple system-wide color picker utility.";
                         font-size: 15px;
-                        color: #cac4d0;
+                        color: #a6a4a8;
                     }
 
                     Rectangle { vertical-stretch: 1; }
