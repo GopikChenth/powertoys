@@ -10,6 +10,9 @@ pub struct ColorFormats {
     pub r: u8,
     pub g: u8,
     pub b: u8,
+    pub h_deg: u16,
+    pub s_pct: u8,
+    pub v_pct: u8,
     pub shades: Vec<(u8, u8, u8)>,
 }
 
@@ -102,6 +105,31 @@ pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> (u16, u8, u8) {
     h *= 60.0;
 
     (h.round() as u16, (s * 100.0).round() as u8, (v * 100.0).round() as u8)
+}
+
+pub fn hsv_to_rgb(h: u16, s: u8, v: u8) -> (u8, u8, u8) {
+    let hf = (h % 360) as f32;
+    let sf = (s as f32) / 100.0;
+    let vf = (v as f32) / 100.0;
+
+    let c = vf * sf;
+    let x = c * (1.0 - ((hf / 60.0) % 2.0 - 1.0).abs());
+    let m = vf - c;
+
+    let (rf, gf, bf) = match (hf / 60.0) as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+
+    (
+        ((rf + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((gf + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+        ((bf + m) * 255.0).round().clamp(0.0, 255.0) as u8,
+    )
 }
 
 pub fn hsl_to_rgb(h: u16, s: u8, l: u8) -> (u8, u8, u8) {
@@ -276,6 +304,9 @@ pub fn format_color(hex_str: &str) -> Option<ColorFormats> {
         r,
         g,
         b,
+        h_deg: h_v,
+        s_pct: s_v,
+        v_pct: v,
         shades,
     })
 }

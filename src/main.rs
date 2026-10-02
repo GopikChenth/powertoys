@@ -8,7 +8,7 @@ use slint::{Color, ComponentHandle, ModelRc, SharedString, VecModel};
 use core::config::AppConfig;
 use core::hyprland::HyprlandManager;
 use core::ipc::{send_ipc_message, start_ipc_listener};
-use modules::color_picker::model::{format_color, hex_to_rgb};
+use modules::color_picker::model::{format_color, hex_to_rgb, hsv_to_rgb, rgb_to_hsv};
 use modules::color_picker::{copy_to_clipboard, pick_color_sync};
 
 slint::include_modules!();
@@ -49,6 +49,24 @@ fn apply_popup_color(popup: &PickerPopupWindow, hex: &str, history_hexes: &[Stri
         popup.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
         popup.set_selected_shade_index(2);
 
+        // Synchronize editor properties
+        let h_norm = formats.h_deg as f32 / 360.0;
+        let s_norm = formats.s_pct as f32 / 100.0;
+        let v_norm = formats.v_pct as f32 / 100.0;
+        popup.set_edit_h(h_norm);
+        popup.set_edit_s(s_norm);
+        popup.set_edit_v(v_norm);
+        popup.set_edit_r_text(SharedString::from(formats.r.to_string()));
+        popup.set_edit_g_text(SharedString::from(formats.g.to_string()));
+        popup.set_edit_b_text(SharedString::from(formats.b.to_string()));
+        popup.set_edit_hex_text(SharedString::from(formats.hex_clean.clone()));
+
+        let (hue_r, hue_g, hue_b) = hsv_to_rgb(formats.h_deg, 100, 100);
+        popup.set_edit_hue_color(Color::from_rgb_u8(hue_r, hue_g, hue_b));
+
+        let (sat_r, sat_g, sat_b) = hsv_to_rgb(formats.h_deg, formats.s_pct, 100);
+        popup.set_edit_sat_color(Color::from_rgb_u8(sat_r, sat_g, sat_b));
+
         // Stepped shades
         let shade_colors: Vec<Color> = formats
             .shades
@@ -82,6 +100,25 @@ fn apply_popup_shade(popup: &PickerPopupWindow, hex: &str, shade_idx: i32) {
         popup.set_hsv(SharedString::from(&formats.hsv));
         popup.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
         popup.set_selected_shade_index(shade_idx);
+
+        // Update editor properties to match selected shade
+        let h_norm = formats.h_deg as f32 / 360.0;
+        let s_norm = formats.s_pct as f32 / 100.0;
+        let v_norm = formats.v_pct as f32 / 100.0;
+        popup.set_edit_h(h_norm);
+        popup.set_edit_s(s_norm);
+        popup.set_edit_v(v_norm);
+        popup.set_edit_r_text(SharedString::from(formats.r.to_string()));
+        popup.set_edit_g_text(SharedString::from(formats.g.to_string()));
+        popup.set_edit_b_text(SharedString::from(formats.b.to_string()));
+        popup.set_edit_hex_text(SharedString::from(formats.hex_clean.clone()));
+
+        let (hue_r, hue_g, hue_b) = hsv_to_rgb(formats.h_deg, 100, 100);
+        popup.set_edit_hue_color(Color::from_rgb_u8(hue_r, hue_g, hue_b));
+
+        let (sat_r, sat_g, sat_b) = hsv_to_rgb(formats.h_deg, formats.s_pct, 100);
+        popup.set_edit_sat_color(Color::from_rgb_u8(sat_r, sat_g, sat_b));
+
         popup.set_show_copied_toast(true);
     }
 }
@@ -281,6 +318,124 @@ fn setup_popup_callbacks(
                     apply_color_to_ui(&w, &hex_str);
                 }
             }
+        }
+    });
+
+    // Editor slider changed (H, S, V)
+    let p_weak = popup.as_weak();
+    popup.on_editor_slider_changed(move |h_norm, s_norm, v_norm| {
+        let h = (h_norm * 360.0).round().clamp(0.0, 360.0) as u16;
+        let s = (s_norm * 100.0).round().clamp(0.0, 100.0) as u8;
+        let v = (v_norm * 100.0).round().clamp(0.0, 100.0) as u8;
+        let (r, g, b) = hsv_to_rgb(h, s, v);
+        let hex_str = format!("{:02x}{:02x}{:02x}", r, g, b);
+
+        if let Some(p) = p_weak.upgrade() {
+            p.set_edit_r_text(SharedString::from(r.to_string()));
+            p.set_edit_g_text(SharedString::from(g.to_string()));
+            p.set_edit_b_text(SharedString::from(b.to_string()));
+            p.set_edit_hex_text(SharedString::from(hex_str));
+
+            let (hue_r, hue_g, hue_b) = hsv_to_rgb(h, 100, 100);
+            p.set_edit_hue_color(Color::from_rgb_u8(hue_r, hue_g, hue_b));
+
+            let (sat_r, sat_g, sat_b) = hsv_to_rgb(h, s, 100);
+            p.set_edit_sat_color(Color::from_rgb_u8(sat_r, sat_g, sat_b));
+        }
+    });
+
+    // Editor RGB input changed
+    let p_weak = popup.as_weak();
+    popup.on_editor_rgb_changed(move |r_str, g_str, b_str| {
+        let r = r_str.trim().parse::<u8>().unwrap_or(0);
+        let g = g_str.trim().parse::<u8>().unwrap_or(0);
+        let b = b_str.trim().parse::<u8>().unwrap_or(0);
+        let (h, s, v) = rgb_to_hsv(r, g, b);
+        let hex_str = format!("{:02x}{:02x}{:02x}", r, g, b);
+
+        if let Some(p) = p_weak.upgrade() {
+            p.set_edit_h(h as f32 / 360.0);
+            p.set_edit_s(s as f32 / 100.0);
+            p.set_edit_v(v as f32 / 100.0);
+            p.set_edit_hex_text(SharedString::from(hex_str));
+
+            let (hue_r, hue_g, hue_b) = hsv_to_rgb(h, 100, 100);
+            p.set_edit_hue_color(Color::from_rgb_u8(hue_r, hue_g, hue_b));
+
+            let (sat_r, sat_g, sat_b) = hsv_to_rgb(h, s, 100);
+            p.set_edit_sat_color(Color::from_rgb_u8(sat_r, sat_g, sat_b));
+        }
+    });
+
+    // Editor HEX input changed
+    let p_weak = popup.as_weak();
+    popup.on_editor_hex_changed(move |hex_input| {
+        let clean = hex_input.trim().trim_start_matches('#');
+        if clean.len() == 6 {
+            if let Some((r, g, b)) = hex_to_rgb(clean) {
+                let (h, s, v) = rgb_to_hsv(r, g, b);
+                if let Some(p) = p_weak.upgrade() {
+                    p.set_edit_h(h as f32 / 360.0);
+                    p.set_edit_s(s as f32 / 100.0);
+                    p.set_edit_v(v as f32 / 100.0);
+                    p.set_edit_r_text(SharedString::from(r.to_string()));
+                    p.set_edit_g_text(SharedString::from(g.to_string()));
+                    p.set_edit_b_text(SharedString::from(b.to_string()));
+
+                    let (hue_r, hue_g, hue_b) = hsv_to_rgb(h, 100, 100);
+                    p.set_edit_hue_color(Color::from_rgb_u8(hue_r, hue_g, hue_b));
+
+                    let (sat_r, sat_g, sat_b) = hsv_to_rgb(h, s, 100);
+                    p.set_edit_sat_color(Color::from_rgb_u8(sat_r, sat_g, sat_b));
+                }
+            }
+        }
+    });
+
+    // Editor Select button clicked -> apply edited color
+    let p_weak = popup.as_weak();
+    let a_hex = Arc::clone(&active_hex);
+    let s_data = Arc::clone(&shades_data);
+    let aw_sel = app_weak.clone();
+    let cfg_sel = Arc::clone(&cfg);
+    popup.on_editor_select_clicked(move || {
+        if let Some(p) = p_weak.upgrade() {
+            let hex_text = p.get_edit_hex_text().to_string();
+            let clean = hex_text.trim().trim_start_matches('#');
+            let full_hex = format!("#{}", clean.to_uppercase());
+
+            *a_hex.lock().unwrap() = full_hex.clone();
+            copy_to_clipboard(&full_hex);
+
+            let history = {
+                let mut config = cfg_sel.lock().unwrap();
+                config.add_history_color(&full_hex);
+                config.color_picker.last_color = full_hex.clone();
+                config.save();
+                config.color_picker.history.clone()
+            };
+
+            if let Some(f) = format_color(&full_hex) {
+                *s_data.lock().unwrap() = f.shades;
+            }
+
+            apply_popup_color(&p, &full_hex, &history);
+            p.set_show_editor(false);
+
+            if let Some(ref w_app) = aw_sel {
+                if let Some(w) = w_app.upgrade() {
+                    apply_color_to_ui(&w, &full_hex);
+                    update_history_ui(&w, &history);
+                }
+            }
+        }
+    });
+
+    // Editor Close button clicked
+    let p_weak = popup.as_weak();
+    popup.on_editor_close_clicked(move || {
+        if let Some(p) = p_weak.upgrade() {
+            p.set_show_editor(false);
         }
     });
 }

@@ -3,6 +3,318 @@ export struct HistoryColor {
     col: color,
 }
 
+component ColorSlider inherits Rectangle {
+    in-out property <float> value: 0.5;
+    in property <color> end-color: #ff0000;
+    in property <brush> track-background: @linear-gradient(90deg, #000000, root.end-color);
+    callback value-changed(float);
+
+    height: 18px;
+
+    Rectangle {
+        y: (parent.height - 10px) / 2;
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        background: root.track-background;
+        border-width: 1px;
+        border-color: #38343e;
+    }
+
+    thumb := Rectangle {
+        x: Math.max(0px, Math.min(parent.width - 16px, root.value * (parent.width - 16px)));
+        y: (parent.height - 16px) / 2;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: #ffffff;
+        border-width: 2px;
+        border-color: #18161a;
+    }
+
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => {
+            root.value = Math.max(0.0, Math.min(1.0, (self.mouse-x - 8px) / (root.width - 16px)));
+            root.value-changed(root.value);
+        }
+        moved => {
+            if self.pressed {
+                root.value = Math.max(0.0, Math.min(1.0, (self.mouse-x - 8px) / (root.width - 16px)));
+                root.value-changed(root.value);
+            }
+        }
+    }
+}
+
+component EditorInput inherits Rectangle {
+    in-out property <string> text <=> input.text;
+    in property <bool> is-centered: false;
+    callback accepted(string);
+    callback edited(string);
+
+    height: 30px;
+    background: #18161a;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: input.has-focus ? #b59ee6 : #38343e;
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        alignment: center;
+
+        input := TextInput {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f0eff1;
+            horizontal-alignment: root.is-centered ? center : left;
+            vertical-alignment: center;
+            selection-background-color: #b59ee6;
+            selection-foreground-color: #141315;
+            accepted => { root.accepted(self.text); }
+            edited => { root.edited(self.text); }
+        }
+    }
+}
+
+component ColorEditorCard inherits Rectangle {
+    in-out property <float> h-val: 0.14;
+    in-out property <float> s-val: 0.38;
+    in-out property <float> v-val: 0.49;
+    in-out property <color> hue-color: #ffcc00;
+    in-out property <color> sat-color: #a89433;
+    in-out property <string> r-text: "125";
+    in-out property <string> g-text: "117";
+    in-out property <string> b-text: "78";
+    in-out property <string> hex-text: "7d754e";
+
+    callback slider-changed(float, float, float);
+    callback rgb-changed(string, string, string);
+    callback hex-changed(string);
+    callback select-clicked();
+    callback close-clicked();
+
+    background: #201d24;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: #38343e;
+    drop-shadow-blur: 16px;
+    drop-shadow-color: #000000aa;
+    drop-shadow-offset-y: 4px;
+
+    VerticalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        padding-top: 10px;
+        padding-bottom: 12px;
+        spacing: 9px;
+
+        // Header with title and close X
+        HorizontalLayout {
+            alignment: space-between;
+            height: 18px;
+
+            Text {
+                text: "Adjust Color";
+                font-size: 12px;
+                font-weight: 600;
+                color: #8a888c;
+                vertical-alignment: center;
+            }
+
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                background: ed_close_touch.has-hover ? #2e2a33 : transparent;
+
+                Text {
+                    text: "X";
+                    font-size: 10px;
+                    font-weight: 600;
+                    color: #8a888c;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                ed_close_touch := TouchArea {
+                    width: 100%;
+                    height: 100%;
+                    mouse-cursor: pointer;
+                    clicked => { root.close-clicked(); }
+                }
+            }
+        }
+
+        // H Slider Row
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: "H";
+                font-size: 13px;
+                font-weight: 600;
+                color: #8a888c;
+                width: 18px;
+                vertical-alignment: center;
+            }
+
+            ColorSlider {
+                value: root.h-val;
+                track-background: @linear-gradient(90deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+                horizontal-stretch: 1;
+                value-changed(val) => {
+                    root.h-val = val;
+                    root.slider-changed(root.h-val, root.s-val, root.v-val);
+                }
+            }
+        }
+
+        // S Slider Row
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: "S";
+                font-size: 13px;
+                font-weight: 600;
+                color: #8a888c;
+                width: 18px;
+                vertical-alignment: center;
+            }
+
+            ColorSlider {
+                value: root.s-val;
+                track-background: @linear-gradient(90deg, #888888 0%, root.hue-color 100%);
+                horizontal-stretch: 1;
+                value-changed(val) => {
+                    root.s-val = val;
+                    root.slider-changed(root.h-val, root.s-val, root.v-val);
+                }
+            }
+        }
+
+        // V Slider Row
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: "V";
+                font-size: 13px;
+                font-weight: 600;
+                color: #8a888c;
+                width: 18px;
+                vertical-alignment: center;
+            }
+
+            ColorSlider {
+                value: root.v-val;
+                track-background: @linear-gradient(90deg, #000000 0%, root.sat-color 100%);
+                horizontal-stretch: 1;
+                value-changed(val) => {
+                    root.v-val = val;
+                    root.slider-changed(root.h-val, root.s-val, root.v-val);
+                }
+            }
+        }
+
+        // RGB Input Row
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: "RGB";
+                font-size: 13px;
+                font-weight: 600;
+                color: #8a888c;
+                width: 32px;
+                vertical-alignment: center;
+            }
+
+            HorizontalLayout {
+                spacing: 6px;
+                horizontal-stretch: 1;
+
+                r_in := EditorInput {
+                    text: root.r-text;
+                    is-centered: true;
+                    horizontal-stretch: 1;
+                    edited(txt) => { root.rgb-changed(txt, g_in.text, b_in.text); }
+                    accepted(txt) => { root.rgb-changed(txt, g_in.text, b_in.text); }
+                }
+
+                g_in := EditorInput {
+                    text: root.g-text;
+                    is-centered: true;
+                    horizontal-stretch: 1;
+                    edited(txt) => { root.rgb-changed(r_in.text, txt, b_in.text); }
+                    accepted(txt) => { root.rgb-changed(r_in.text, txt, b_in.text); }
+                }
+
+                b_in := EditorInput {
+                    text: root.b-text;
+                    is-centered: true;
+                    horizontal-stretch: 1;
+                    edited(txt) => { root.rgb-changed(r_in.text, g_in.text, txt); }
+                    accepted(txt) => { root.rgb-changed(r_in.text, g_in.text, txt); }
+                }
+            }
+        }
+
+        // HEX Input Row
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: "HEX";
+                font-size: 13px;
+                font-weight: 600;
+                color: #8a888c;
+                width: 32px;
+                vertical-alignment: center;
+            }
+
+            hex_in := EditorInput {
+                text: root.hex-text;
+                horizontal-stretch: 1;
+                edited(txt) => { root.hex-changed(txt); }
+                accepted(txt) => { root.hex-changed(txt); }
+            }
+        }
+
+        // Select Action Button
+        Rectangle {
+            height: 34px;
+            background: sel_btn_touch.has-hover ? #2b8396 : #1f6473;
+            border-radius: 4px;
+
+            Text {
+                text: "Select";
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            sel_btn_touch := TouchArea {
+                width: 100%;
+                height: 100%;
+                mouse-cursor: pointer;
+                clicked => { root.select-clicked(); }
+            }
+        }
+    }
+}
+
 component SidebarItem inherits Rectangle {
     in property <string> text: "";
     in property <string> icon: "";
@@ -585,6 +897,7 @@ component ColorCardItem inherits Rectangle {
     in property <string> label: "";
     in property <string> value: "";
     callback copy_clicked();
+    callback card_clicked();
 
     height: 40px;
     background: touch.has-hover ? #28242c : #201d24;
@@ -661,7 +974,7 @@ component ColorCardItem inherits Rectangle {
         width: 100%;
         height: 100%;
         mouse-cursor: pointer;
-        clicked => { root.copy_clicked(); }
+        clicked => { root.card_clicked(); }
     }
 }
 
@@ -806,6 +1119,16 @@ export component PickerPopupWindow inherits Window {
     in-out property <[color]> shades: [#b8cfab, #abc39c, #9cb687, #819b6e, #677e55];
     in-out property <int> selected-shade-index: 2;
     in-out property <bool> show-copied-toast: true;
+    in-out property <bool> show-editor: true;
+    in-out property <float> edit-h: 0.14;
+    in-out property <float> edit-s: 0.38;
+    in-out property <float> edit-v: 0.49;
+    in-out property <color> edit-hue-color: #ffcc00;
+    in-out property <color> edit-sat-color: #a89433;
+    in-out property <string> edit-r-text: "125";
+    in-out property <string> edit-g-text: "117";
+    in-out property <string> edit-b-text: "78";
+    in-out property <string> edit-hex-text: "7d754e";
 
     callback close-requested();
     callback pick-requested();
@@ -816,6 +1139,11 @@ export component PickerPopupWindow inherits Window {
     callback copy-hsv();
     callback select-swatch(string);
     callback select-shade(int);
+    callback editor-slider-changed(float, float, float);
+    callback editor-rgb-changed(string, string, string);
+    callback editor-hex-changed(string);
+    callback editor-select-clicked();
+    callback editor-close-clicked();
 
     Rectangle {
         width: 100%;
@@ -948,6 +1276,42 @@ export component PickerPopupWindow inherits Window {
                     }
                 }
 
+                // Adjust / Tune button
+                Rectangle {
+                    width: 32px;
+                    height: 30px;
+                    background: tune_touch.has-hover ? #2f2b34 : #242127;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: #38343e;
+
+                    Rectangle {
+                        x: 6px; y: 8px; width: 20px; height: 2px; background: #8a888c; border-radius: 1px;
+                    }
+                    Rectangle {
+                        x: 10px; y: 6px; width: 4px; height: 6px; background: #b59ee6; border-radius: 1px;
+                    }
+                    Rectangle {
+                        x: 6px; y: 14px; width: 20px; height: 2px; background: #8a888c; border-radius: 1px;
+                    }
+                    Rectangle {
+                        x: 18px; y: 12px; width: 4px; height: 6px; background: #b59ee6; border-radius: 1px;
+                    }
+                    Rectangle {
+                        x: 6px; y: 20px; width: 20px; height: 2px; background: #8a888c; border-radius: 1px;
+                    }
+                    Rectangle {
+                        x: 12px; y: 18px; width: 4px; height: 6px; background: #b59ee6; border-radius: 1px;
+                    }
+
+                    tune_touch := TouchArea {
+                        width: 100%;
+                        height: 100%;
+                        mouse-cursor: pointer;
+                        clicked => { root.show-editor = !root.show-editor; }
+                    }
+                }
+
                 // History Dots Row
                 HorizontalLayout {
                     spacing: 6px;
@@ -1039,27 +1403,64 @@ export component PickerPopupWindow inherits Window {
                     ColorCardItem {
                         label: "HEX";
                         value: root.hex;
+                        card_clicked => { root.show-editor = true; }
                         copy_clicked => { root.copy-hex(); }
                     }
 
                     ColorCardItem {
                         label: "RGB";
                         value: root.rgb;
+                        card_clicked => { root.show-editor = true; }
                         copy_clicked => { root.copy-rgb(); }
                     }
 
                     ColorCardItem {
                         label: "HSL";
                         value: root.hsl;
+                        card_clicked => { root.show-editor = true; }
                         copy_clicked => { root.copy-hsl(); }
                     }
 
                     ColorCardItem {
                         label: "HSV";
                         value: root.hsv;
+                        card_clicked => { root.show-editor = true; }
                         copy_clicked => { root.copy-hsv(); }
                     }
                 }
+            }
+        }
+
+        // Color Editor Flyout Dialog (Prompt matching user screenshot)
+        if root.show-editor: ColorEditorCard {
+            x: 52px;
+            y: 40px;
+            width: 372px;
+            height: 262px;
+            h-val: root.edit-h;
+            s-val: root.edit-s;
+            v-val: root.edit-v;
+            hue-color: root.edit-hue-color;
+            sat-color: root.edit-sat-color;
+            r-text: root.edit-r-text;
+            g-text: root.edit-g-text;
+            b-text: root.edit-b-text;
+            hex-text: root.edit-hex-text;
+            slider-changed(h, s, v) => {
+                root.editor-slider-changed(h, s, v);
+            }
+            rgb-changed(r, g, b) => {
+                root.editor-rgb-changed(r, g, b);
+            }
+            hex-changed(h) => {
+                root.editor-hex-changed(h);
+            }
+            select-clicked => {
+                root.editor-select-clicked();
+            }
+            close-clicked => {
+                root.show-editor = false;
+                root.editor-close-clicked();
             }
         }
 
