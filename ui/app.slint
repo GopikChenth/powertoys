@@ -5,10 +5,18 @@ component SidebarItem inherits Rectangle {
     callback clicked();
 
     height: 48px;
-    border-radius: 24px;
     background: is-active ? #383442 : (touch.has-hover ? #2a2730 : transparent);
 
     animate background { duration: 150ms; }
+
+    // Sharp left active accent line
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 3px;
+        height: parent.height;
+        background: root.is-active ? #d0bcff : transparent;
+    }
 
     HorizontalLayout {
         padding-left: 18px;
@@ -108,7 +116,7 @@ export component MainWindow inherits Window {
                         }
                     }
 
-                    // First feature: Colour Picker
+                    // First feature: Colour Picker (Box design, no curves)
                     SidebarItem {
                         text: "Colour Picker";
                         icon: "🎨";
