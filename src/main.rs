@@ -35,6 +35,7 @@ fn apply_color_to_ui(app: &MainWindow, hex: &str) {
         app.set_color_name(SharedString::from(&formats.color_name));
         app.set_current_rgb(SharedString::from(&formats.rgb));
         app.set_current_hsl(SharedString::from(&formats.hsl));
+        app.set_current_hsv(SharedString::from(&formats.hsv));
         app.set_current_cmyk(SharedString::from(&formats.cmyk));
         app.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
     }
@@ -518,11 +519,22 @@ fn main() -> Result<(), slint::PlatformError> {
     {
         let config = cfg.lock().unwrap();
         app.set_shortcut_text(SharedString::from(&config.color_picker.shortcut));
+        app.set_is_color_picker_enabled(config.color_picker.enabled);
+        app.set_activation_behavior(SharedString::from(&config.color_picker.activation_behavior));
+        app.set_default_color_format(SharedString::from(&config.color_picker.default_format));
+        app.set_show_color_name(config.color_picker.show_color_name);
+        app.set_hex_format_enabled(config.color_picker.hex_enabled);
+        app.set_rgb_format_enabled(config.color_picker.rgb_enabled);
+        app.set_hsl_format_enabled(config.color_picker.hsl_enabled);
+        app.set_hsv_format_enabled(config.color_picker.hsv_enabled);
+        app.set_cmyk_format_enabled(config.color_picker.cmyk_enabled);
         apply_color_to_ui(&app, &config.color_picker.last_color);
         update_history_ui(&app, &config.color_picker.history);
 
         // Ensure shortcut is registered in Hyprland to invoke `powertoys --pick`
-        let _ = HyprlandManager::register_shortcut(&config.color_picker.shortcut, "powertoys --pick");
+        if config.color_picker.enabled {
+            let _ = HyprlandManager::register_shortcut(&config.color_picker.shortcut, "powertoys --pick");
+        }
     }
 
     // Set up IPC Server listener to receive color updates and show popup instantly
@@ -705,6 +717,88 @@ fn main() -> Result<(), slint::PlatformError> {
                     w.set_status_text(SharedString::from(format!("Failed to bind: {}", err)));
                 }
             }
+        }
+    });
+
+    // Enable toggled
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
+    app.on_enable_toggled(move |enabled| {
+        let mut config = cfg_clone.lock().unwrap();
+        config.color_picker.enabled = enabled;
+        config.save();
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(if enabled {
+                "Color Picker module enabled"
+            } else {
+                "Color Picker module disabled"
+            }));
+        }
+    });
+
+    // Activation behavior changed
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
+    app.on_behavior_changed(move |behavior| {
+        let b = behavior.to_string();
+        let mut config = cfg_clone.lock().unwrap();
+        config.color_picker.activation_behavior = b.clone();
+        config.save();
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(format!("Activation behavior set to: {}", b)));
+        }
+    });
+
+    // Default format changed
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
+    app.on_default_format_changed(move |format| {
+        let f = format.to_string();
+        let mut config = cfg_clone.lock().unwrap();
+        config.color_picker.default_format = f.clone();
+        config.save();
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(format!("Default copy format: {}", f)));
+        }
+    });
+
+    // Show color name toggled
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
+    app.on_show_name_toggled(move |show| {
+        let mut config = cfg_clone.lock().unwrap();
+        config.color_picker.show_color_name = show;
+        config.save();
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(if show {
+                "Color name display enabled"
+            } else {
+                "Color name display hidden"
+            }));
+        }
+    });
+
+    // Format toggled (HEX, RGB, HSL, HSV, CMYK)
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
+    app.on_format_toggled(move |fmt, enabled| {
+        let mut config = cfg_clone.lock().unwrap();
+        let fmt_str = fmt.to_string();
+        match fmt_str.as_str() {
+            "HEX" => config.color_picker.hex_enabled = enabled,
+            "RGB" => config.color_picker.rgb_enabled = enabled,
+            "HSL" => config.color_picker.hsl_enabled = enabled,
+            "HSV" => config.color_picker.hsv_enabled = enabled,
+            "CMYK" => config.color_picker.cmyk_enabled = enabled,
+            _ => {}
+        }
+        config.save();
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(format!(
+                "Format {} {}",
+                fmt_str,
+                if enabled { "enabled" } else { "hidden" }
+            )));
         }
     });
 

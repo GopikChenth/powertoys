@@ -393,111 +393,7 @@ component SharpButton inherits Rectangle {
     }
 }
 
-component ColorFormatRow inherits Rectangle {
-    in property <string> label: "";
-    in property <string> value: "";
-    callback copy_clicked();
 
-    height: 38px;
-    background: #171518;
-    border-width: 1px;
-    border-color: #27242a;
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 6px;
-        spacing: 12px;
-        alignment: stretch;
-
-        // Label Column (Fixed width for tabular alignment)
-        Text {
-            width: 52px;
-            text: root.label;
-            font-size: 13px;
-            font-weight: 700;
-            color: #8a888c;
-            vertical-alignment: center;
-        }
-
-        // Value Column (Starts at exact same X position)
-        Text {
-            text: root.value;
-            font-size: 14px;
-            font-weight: 600;
-            color: #f0eff1;
-            vertical-alignment: center;
-            horizontal-stretch: 1;
-            overflow: elide;
-        }
-
-        // Action Button Column (Uniform 105px width)
-        SharpButton {
-            width: 105px;
-            text: "Copy " + root.label;
-            primary: false;
-            clicked => { root.copy_clicked(); }
-        }
-    }
-}
-
-component PowerToysPickerCard inherits Rectangle {
-    in property <color> fill-color;
-    in property <string> hex-value: "a8c7d2";
-    in property <string> color-name: "Sky blue";
-    callback clicked();
-
-    height: 84px;
-    background: touch.has-hover ? #1f1d22 : #171518;
-    border-radius: 6px;
-    border-width: 1px;
-    border-color: touch.has-hover ? #38343f : #27242a;
-
-    animate background { duration: 120ms; }
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 16px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-        spacing: 16px;
-        alignment: center;
-
-        // Swatch on Left
-        Rectangle {
-            width: 64px;
-            height: 64px;
-            border-radius: 4px;
-            background: root.fill-color;
-            border-width: 1px;
-            border-color: #38343c;
-        }
-
-        // Hex Code and Color Name on Right
-        VerticalLayout {
-            alignment: center;
-            spacing: 2px;
-            horizontal-stretch: 1;
-
-            Text {
-                text: root.hex-value;
-                font-size: 21px;
-                font-weight: 700;
-                color: #f0eff1;
-            }
-
-            Text {
-                text: root.color-name;
-                font-size: 14px;
-                font-weight: 500;
-                color: #8a888c;
-            }
-        }
-    }
-
-    touch := TouchArea {
-        clicked => { root.clicked(); }
-    }
-}
 
 component SharpInput inherits Rectangle {
     in-out property <string> text <=> input.text;
@@ -540,11 +436,450 @@ component ColorBox inherits Rectangle {
     }
 }
 
-component FeatureCard inherits Rectangle {
-    background: #1b191d;
+component ToggleSwitch inherits Rectangle {
+    in-out property <bool> checked: true;
+    callback toggled(bool);
+
+    width: 44px;
+    height: 22px;
+    border-radius: 11px;
+    background: root.checked ? #0078d4 : #28252c;
     border-width: 1px;
-    border-color: #2b282e;
+    border-color: root.checked ? #0078d4 : #45414d;
+
+    animate background { duration: 150ms; }
+
+    thumb := Rectangle {
+        x: root.checked ? parent.width - 19px : 3px;
+        y: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: #ffffff;
+
+        animate x { duration: 150ms; easing: ease-out; }
+    }
+
+    TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
 }
+
+component KeyBadge inherits Rectangle {
+    in property <string> key-text: "";
+    in property <bool> is-win-key: false;
+
+    height: 30px;
+    background: #0078d4;
+    border-radius: 4px;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+
+        if root.is-win-key: Rectangle {
+            width: 14px;
+            height: 14px;
+
+            Rectangle { x: 0px; y: 0px; width: 6px; height: 6px; border-radius: 1px; background: #ffffff; }
+            Rectangle { x: 8px; y: 0px; width: 6px; height: 6px; border-radius: 1px; background: #ffffff; }
+            Rectangle { x: 0px; y: 8px; width: 6px; height: 6px; border-radius: 1px; background: #ffffff; }
+            Rectangle { x: 8px; y: 8px; width: 6px; height: 6px; border-radius: 1px; background: #ffffff; }
+        }
+
+        if !root.is-win-key: Text {
+            text: root.key-text;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component DropdownButton inherits Rectangle {
+    in property <string> text: "";
+    callback clicked();
+
+    height: 32px;
+    background: touch.has-hover ? #28242c : #201d24;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: #38343e;
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+        alignment: space-between;
+
+        Text {
+            text: root.text;
+            font-size: 13px;
+            font-weight: 500;
+            color: #f0eff1;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: "v";
+            font-size: 10px;
+            font-weight: 700;
+            color: #8a888c;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component EyedropperIcon inherits Rectangle {
+    width: 16px;
+    height: 16px;
+    background: transparent;
+
+    Rectangle {
+        x: 8px;
+        y: 1px;
+        width: 6px;
+        height: 6px;
+        border-radius: 2px;
+        background: #ffffff;
+    }
+    Rectangle {
+        x: 4px;
+        y: 5px;
+        width: 6px;
+        height: 6px;
+        border-radius: 1px;
+        background: #ffffff;
+    }
+    Rectangle {
+        x: 1px;
+        y: 11px;
+        width: 3px;
+        height: 3px;
+        border-radius: 1px;
+        background: #ffffff;
+    }
+}
+
+component EditPencilButton inherits Rectangle {
+    callback clicked();
+
+    width: 32px;
+    height: 30px;
+    border-radius: 4px;
+    background: touch.has-hover ? #2e2a34 : transparent;
+
+    Rectangle {
+        x: 9px;
+        y: 8px;
+        width: 14px;
+        height: 14px;
+        background: transparent;
+
+        Rectangle {
+            x: 5px;
+            y: 2px;
+            width: 4px;
+            height: 7px;
+            border-radius: 1px;
+            background: #8a888c;
+        }
+        Rectangle {
+            x: 6px;
+            y: 10px;
+            width: 2px;
+            height: 2px;
+            background: #8a888c;
+        }
+        Rectangle {
+            x: 3px;
+            y: 12px;
+            width: 8px;
+            height: 1.5px;
+            border-radius: 0.5px;
+            background: #8a888c;
+        }
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component KeyboardIcon inherits Rectangle {
+    width: 18px;
+    height: 13px;
+    background: transparent;
+    border-width: 1.5px;
+    border-color: #8a888c;
+    border-radius: 2px;
+
+    HorizontalLayout {
+        padding: 2px;
+        spacing: 2px;
+        alignment: center;
+        Rectangle { width: 2px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+        Rectangle { width: 2px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+        Rectangle { width: 2px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+    }
+}
+
+component MonitorIcon inherits Rectangle {
+    width: 18px;
+    height: 16px;
+    background: transparent;
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: 18px;
+        height: 12px;
+        border-width: 1.5px;
+        border-color: #8a888c;
+        border-radius: 2px;
+    }
+    Rectangle {
+        x: 7px;
+        y: 11px;
+        width: 4px;
+        height: 3px;
+        background: #8a888c;
+    }
+    Rectangle {
+        x: 4px;
+        y: 14px;
+        width: 10px;
+        height: 1.5px;
+        background: #8a888c;
+        border-radius: 0.5px;
+    }
+}
+
+component ClipboardIcon inherits Rectangle {
+    width: 16px;
+    height: 18px;
+    background: transparent;
+
+    Rectangle {
+        x: 1px;
+        y: 3px;
+        width: 14px;
+        height: 15px;
+        border-width: 1.5px;
+        border-color: #8a888c;
+        border-radius: 2px;
+    }
+    Rectangle {
+        x: 4px;
+        y: 0px;
+        width: 8px;
+        height: 4px;
+        border-width: 1.5px;
+        border-color: #8a888c;
+        border-radius: 1px;
+        background: #1c1a1e;
+    }
+}
+
+component FormatListIcon inherits Rectangle {
+    width: 18px;
+    height: 14px;
+    background: transparent;
+
+    VerticalLayout {
+        spacing: 3px;
+        alignment: center;
+        HorizontalLayout {
+            spacing: 4px;
+            Rectangle { width: 3px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+            Rectangle { horizontal-stretch: 1; height: 2px; background: #8a888c; border-radius: 0.5px; }
+        }
+        HorizontalLayout {
+            spacing: 4px;
+            Rectangle { width: 3px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+            Rectangle { horizontal-stretch: 1; height: 2px; background: #8a888c; border-radius: 0.5px; }
+        }
+        HorizontalLayout {
+            spacing: 4px;
+            Rectangle { width: 3px; height: 2px; background: #8a888c; border-radius: 0.5px; }
+            Rectangle { horizontal-stretch: 1; height: 2px; background: #8a888c; border-radius: 0.5px; }
+        }
+    }
+}
+
+component MoreOptionsButton inherits Rectangle {
+    callback clicked();
+
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: touch.has-hover ? #2e2a34 : transparent;
+
+    HorizontalLayout {
+        spacing: 3px;
+        alignment: center;
+        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #8a888c; }
+        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #8a888c; }
+        Rectangle { width: 3px; height: 3px; border-radius: 1.5px; background: #8a888c; }
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component HeroIllustration inherits Rectangle {
+    width: 140px;
+    height: 80px;
+    border-radius: 6px;
+    clip: true;
+    background: @linear-gradient(135deg, #1f2a3a, #151a24);
+    border-width: 1px;
+    border-color: #2c384a;
+
+    Rectangle {
+        x: 0px;
+        y: 40px;
+        width: 140px;
+        height: 40px;
+        background: @linear-gradient(180deg, #25385255, #141b26);
+    }
+
+    // Mini PowerToys Picker Window floating inside
+    Rectangle {
+        x: 36px;
+        y: 12px;
+        width: 72px;
+        height: 52px;
+        border-radius: 4px;
+        background: #1c1a1e;
+        border-width: 1px;
+        border-color: #38343e;
+
+        // Mini header
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 100%;
+            height: 9px;
+            background: #252229;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        // Mini color swatch on left
+        Rectangle {
+            x: 6px;
+            y: 13px;
+            width: 18px;
+            height: 33px;
+            border-radius: 2px;
+            background: #b59ee6;
+        }
+
+        // Mini format lines
+        VerticalLayout {
+            x: 28px;
+            y: 14px;
+            width: 38px;
+            spacing: 5px;
+
+            Rectangle { width: 36px; height: 3px; border-radius: 1px; background: #5a5464; }
+            Rectangle { width: 30px; height: 3px; border-radius: 1px; background: #433e4c; }
+            Rectangle { width: 32px; height: 3px; border-radius: 1px; background: #433e4c; }
+            Rectangle { width: 24px; height: 3px; border-radius: 1px; background: #433e4c; }
+        }
+    }
+
+    // Mini Loupe / Dropper cursor
+    Rectangle {
+        x: 20px;
+        y: 38px;
+        width: 12px;
+        height: 12px;
+        background: transparent;
+
+        Rectangle { x: 3px; y: 3px; width: 6px; height: 6px; border-radius: 3px; border-width: 1.5px; border-color: #ffffff; background: transparent; }
+        Rectangle { x: 5px; y: 0px; width: 2px; height: 3px; background: #ffffff; }
+        Rectangle { x: 5px; y: 9px; width: 2px; height: 3px; background: #ffffff; }
+        Rectangle { x: 0px; y: 5px; width: 3px; height: 2px; background: #ffffff; }
+        Rectangle { x: 9px; y: 5px; width: 3px; height: 2px; background: #ffffff; }
+    }
+}
+
+component ColorFormatSettingRow inherits Rectangle {
+    in property <string> format-name;
+    in property <string> format-preview;
+    in-out property <bool> is-enabled: true;
+    callback toggled(bool);
+    callback more-clicked();
+
+    height: 52px;
+    background: transparent;
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 16px;
+        alignment: space-between;
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+
+            Text {
+                text: root.format-name;
+                font-size: 14px;
+                font-weight: 600;
+                color: #f0eff1;
+            }
+
+            Text {
+                text: root.format-preview;
+                font-size: 12px;
+                color: #8a888c;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: center;
+
+            ToggleSwitch {
+                checked: root.is-enabled;
+                toggled(val) => {
+                    root.is-enabled = val;
+                    root.toggled(val);
+                }
+            }
+
+            MoreOptionsButton {
+                clicked => { root.more-clicked(); }
+            }
+        }
+    }
+}
+
 
 export component MainWindow inherits Window {
     title: "PowerToys";
@@ -559,10 +894,23 @@ export component MainWindow inherits Window {
     in-out property <string> color-name: "Lavender";
     in-out property <string> current-rgb: "rgb(181, 158, 230)";
     in-out property <string> current-hsl: "hsl(259, 58%, 76%)";
+    in-out property <string> current-hsv: "hsv(259, 31%, 90%)";
     in-out property <string> current-cmyk: "cmyk(21%, 31%, 0%, 10%)";
     in-out property <color> current-color: #b59ee6;
     in-out property <string> status-text: "";
     in-out property <[HistoryColor]> history: [];
+
+    in-out property <bool> is-color-picker-enabled: true;
+    in-out property <string> activation-behavior: "Open editor";
+    in-out property <string> default-color-format: "HEX";
+    in-out property <bool> show-color-name: true;
+    in-out property <bool> is-editing-shortcut: false;
+
+    in-out property <bool> hex-format-enabled: true;
+    in-out property <bool> rgb-format-enabled: true;
+    in-out property <bool> hsl-format-enabled: true;
+    in-out property <bool> hsv-format-enabled: true;
+    in-out property <bool> cmyk-format-enabled: true;
 
     callback close-requested();
     callback pick-color-clicked();
@@ -572,6 +920,11 @@ export component MainWindow inherits Window {
     callback copy-cmyk-clicked(string);
     callback save-shortcut-clicked(string);
     callback swatch-selected(string);
+    callback format-toggled(string, bool);
+    callback behavior-changed(string);
+    callback default-format-changed(string);
+    callback enable-toggled(bool);
+    callback show-name-toggled(bool);
 
     forward-focus: key-handler;
 
@@ -679,9 +1032,9 @@ export component MainWindow inherits Window {
 
                 Flickable {
                     x: 36px;
-                    y: 32px;
+                    y: 28px;
                     width: parent.width - 72px;
-                    height: parent.height - 64px;
+                    height: parent.height - 56px;
                     content-width: self.width;
                     content-height: content.preferred-height;
 
@@ -690,200 +1043,620 @@ export component MainWindow inherits Window {
                         spacing: 20px;
                         alignment: start;
 
-                            // Header
-                            VerticalLayout {
-                                spacing: 6px;
-                                Text {
-                                    text: "Colour Picker";
-                                    font-size: 28px;
-                                    font-weight: 700;
-                                    color: #f0eff1;
-                                }
-
-                                Text {
-                                    text: "System-wide pixel color inspection and clipboard utility.";
-                                    font-size: 13px;
-                                    color: #a6a4a8;
-                                }
+                        // 1. Page Title Header
+                        VerticalLayout {
+                            spacing: 4px;
+                            Text {
+                                text: "Color Picker";
+                                font-size: 28px;
+                                font-weight: 700;
+                                color: #f0eff1;
                             }
+                        }
 
-                            // Action Banner (Sharp Box)
-                            FeatureCard {
-                                height: 76px;
-                                HorizontalLayout {
-                                    padding-left: 20px;
-                                    padding-right: 20px;
-                                    spacing: 16px;
-                                    alignment: center;
+                        // 2. Hero Card (Thumbnail illustration on left, info & action on right)
+                        Rectangle {
+                            background: transparent;
+                            height: 80px;
 
-                                    VerticalLayout {
-                                        alignment: center;
-                                        spacing: 4px;
-                                        Text {
-                                            text: "Pick Any Color On Screen";
-                                            font-size: 15px;
-                                            font-weight: 600;
-                                            color: #f0eff1;
-                                        }
-                                        Text {
-                                            text: "Magnifying loupe freezes screen and captures exact pixel color.";
-                                            font-size: 12px;
-                                            color: #8a888c;
-                                        }
-                                    }
+                            HorizontalLayout {
+                                spacing: 20px;
+                                alignment: start;
 
-                                    Rectangle { horizontal-stretch: 1; }
+                                HeroIllustration { }
 
-                                    SharpButton {
-                                        text: "Pick Color (Hyprpicker)";
-                                        primary: true;
-                                        clicked => { root.pick-color-clicked(); }
-                                    }
-                                }
-                            }
-
-                            // Shortcut Configuration Section
-                            FeatureCard {
                                 VerticalLayout {
-                                    padding-left: 20px;
-                                    padding-right: 20px;
-                                    padding-top: 18px;
-                                    padding-bottom: 18px;
-                                    spacing: 12px;
+                                    alignment: center;
+                                    spacing: 8px;
 
                                     Text {
-                                        text: "Global Activation Shortcut";
-                                        font-size: 15px;
-                                        font-weight: 600;
-                                        color: #f0eff1;
-                                    }
-
-                                    Text {
-                                        text: "Press this shortcut from anywhere in your desktop to trigger Hyprpicker.";
-                                        font-size: 12px;
-                                        color: #8a888c;
+                                        text: "Quick and simple system-wide color picker.";
+                                        font-size: 13px;
+                                        color: #a6a4a8;
                                     }
 
                                     HorizontalLayout {
-                                        spacing: 12px;
+                                        spacing: 16px;
+                                        alignment: center;
 
-                                        shortcut-input := SharpInput {
-                                            text: root.shortcut-text;
-                                            horizontal-stretch: 1;
+                                        Rectangle {
+                                            height: 22px;
+                                            background: transparent;
+                                            Text {
+                                                text: "Learn more about Color Picker";
+                                                font-size: 13px;
+                                                font-weight: 600;
+                                                color: #4cc2ff;
+                                                vertical-alignment: center;
+                                            }
+                                            TouchArea {
+                                                mouse-cursor: pointer;
+                                                clicked => {
+                                                    root.status-text = "Official Microsoft PowerToys Color Picker active";
+                                                }
+                                            }
                                         }
 
                                         SharpButton {
-                                            text: "Save & Apply Shortcut";
-                                            primary: false;
-                                            clicked => { root.save-shortcut-clicked(shortcut-input.text); }
+                                            text: "Pick Color (Hyprpicker)";
+                                            primary: true;
+                                            clicked => { root.pick-color-clicked(); }
                                         }
                                     }
                                 }
                             }
+                        }
 
-                            // Active Color Inspector Section
-                            FeatureCard {
-                                VerticalLayout {
-                                    padding-left: 20px;
-                                    padding-right: 20px;
-                                    padding-top: 18px;
-                                    padding-bottom: 18px;
-                                    spacing: 14px;
+                        // 3. Enable Color Picker Card
+                        Rectangle {
+                            height: 64px;
+                            background: #1c1a1e;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: #2c2832;
+
+                            HorizontalLayout {
+                                padding-left: 20px;
+                                padding-right: 20px;
+                                alignment: space-between;
+
+                                HorizontalLayout {
+                                    spacing: 16px;
+                                    alignment: center;
+
+                                    // Blue accent icon tile
+                                    Rectangle {
+                                        width: 32px;
+                                        height: 32px;
+                                        border-radius: 4px;
+                                        background: #0078d4;
+
+                                        EyedropperIcon {
+                                            x: 8px;
+                                            y: 8px;
+                                        }
+                                    }
 
                                     Text {
-                                        text: "Active Color Inspector";
-                                        font-size: 15px;
-                                        font-weight: 600;
-                                        color: #f0eff1;
-                                    }
-
-                                    // PowerToys Iconic Picker Card (Matching Screenshot)
-                                    PowerToysPickerCard {
-                                        fill-color: root.current-color;
-                                        hex-value: root.current-hex-clean;
-                                        color-name: root.color-name;
-                                        clicked => { root.copy-hex-clicked(root.current-hex); }
-                                    }
-
-                                    // Format Rows Column
-                                    VerticalLayout {
-                                        spacing: 8px;
-
-                                        ColorFormatRow {
-                                            label: "HEX";
-                                            value: root.current-hex;
-                                            copy_clicked => { root.copy-hex-clicked(root.current-hex); }
-                                        }
-
-                                        ColorFormatRow {
-                                            label: "RGB";
-                                            value: root.current-rgb;
-                                            copy_clicked => { root.copy-rgb-clicked(root.current-rgb); }
-                                        }
-
-                                        ColorFormatRow {
-                                            label: "HSL";
-                                            value: root.current-hsl;
-                                            copy_clicked => { root.copy-hsl-clicked(root.current-hsl); }
-                                        }
-
-                                        ColorFormatRow {
-                                            label: "CMYK";
-                                            value: root.current-cmyk;
-                                            copy_clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Dynamic Color History Section
-                            FeatureCard {
-                                VerticalLayout {
-                                    padding-left: 20px;
-                                    padding-right: 20px;
-                                    padding-top: 18px;
-                                    padding-bottom: 18px;
-                                    spacing: 12px;
-
-                                    Text {
-                                        text: "Color History";
+                                        text: "Enable Color Picker";
                                         font-size: 14px;
                                         font-weight: 600;
                                         color: #f0eff1;
+                                        vertical-alignment: center;
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    alignment: center;
+
+                                    Text {
+                                        text: root.is-color-picker-enabled ? "On" : "Off";
+                                        font-size: 13px;
+                                        color: #f0eff1;
+                                        vertical-alignment: center;
                                     }
 
-                                    HorizontalLayout {
-                                        spacing: 10px;
-                                        alignment: start;
+                                    ToggleSwitch {
+                                        checked: root.is-color-picker-enabled;
+                                        toggled(val) => {
+                                            root.is-color-picker-enabled = val;
+                                            root.enable-toggled(val);
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
-                                        for item in root.history: ColorBox {
-                                            fill-color: item.col;
-                                            hex-value: item.hex;
-                                            clicked(hex) => { root.swatch-selected(hex); }
+                        // 4. Shortcut Section
+                        VerticalLayout {
+                            spacing: 8px;
+
+                            Text {
+                                text: "Shortcut";
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #f0eff1;
+                            }
+
+                            // Group container for Shortcut settings
+                            Rectangle {
+                                background: #1c1a1e;
+                                border-radius: 6px;
+                                border-width: 1px;
+                                border-color: #2c2832;
+
+                                VerticalLayout {
+                                    // Row 1: Activation shortcut
+                                    Rectangle {
+                                        height: 64px;
+                                        background: transparent;
+
+                                        HorizontalLayout {
+                                            padding-left: 20px;
+                                            padding-right: 16px;
+                                            alignment: space-between;
+
+                                            HorizontalLayout {
+                                                spacing: 16px;
+                                                alignment: center;
+
+                                                KeyboardIcon { }
+
+                                                VerticalLayout {
+                                                    alignment: center;
+                                                    spacing: 2px;
+
+                                                    Text {
+                                                        text: "Activation shortcut";
+                                                        font-size: 14px;
+                                                        font-weight: 600;
+                                                        color: #f0eff1;
+                                                    }
+
+                                                    Text {
+                                                        text: "Customize the shortcut to activate this module";
+                                                        font-size: 12px;
+                                                        color: #8a888c;
+                                                    }
+                                                }
+                                            }
+
+                                            // Right side: Badges or Inline Editor
+                                            if !root.is-editing-shortcut: HorizontalLayout {
+                                                spacing: 6px;
+                                                alignment: center;
+
+                                                KeyBadge { is-win-key: true; }
+                                                KeyBadge { key-text: "Shift"; }
+                                                KeyBadge { key-text: "C"; }
+
+                                                EditPencilButton {
+                                                    clicked => { root.is-editing-shortcut = true; }
+                                                }
+                                            }
+
+                                            if root.is-editing-shortcut: HorizontalLayout {
+                                                spacing: 8px;
+                                                alignment: center;
+
+                                                shortcut-input := SharpInput {
+                                                    width: 180px;
+                                                    text: root.shortcut-text;
+                                                    accepted(val) => {
+                                                        root.is-editing-shortcut = false;
+                                                        root.save-shortcut-clicked(val);
+                                                    }
+                                                }
+
+                                                SharpButton {
+                                                    text: "Save";
+                                                    primary: true;
+                                                    clicked => {
+                                                        root.is-editing-shortcut = false;
+                                                        root.save-shortcut-clicked(shortcut-input.text);
+                                                    }
+                                                }
+
+                                                SharpButton {
+                                                    text: "Cancel";
+                                                    primary: false;
+                                                    clicked => {
+                                                        root.is-editing-shortcut = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Divider Line
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    // Row 2: Activation behavior
+                                    Rectangle {
+                                        height: 52px;
+                                        background: transparent;
+
+                                        HorizontalLayout {
+                                            padding-left: 20px;
+                                            padding-right: 16px;
+                                            alignment: space-between;
+
+                                            HorizontalLayout {
+                                                spacing: 16px;
+                                                alignment: center;
+
+                                                MonitorIcon { }
+
+                                                Text {
+                                                    text: "Activation behavior";
+                                                    font-size: 14px;
+                                                    font-weight: 600;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+                                            }
+
+                                            DropdownButton {
+                                                text: root.activation-behavior;
+                                                clicked => {
+                                                    if root.activation-behavior == "Open editor" {
+                                                        root.activation-behavior = "Pick a color and open editor";
+                                                    } else if root.activation-behavior == "Pick a color and open editor" {
+                                                        root.activation-behavior = "Only pick a color";
+                                                    } else {
+                                                        root.activation-behavior = "Open editor";
+                                                    }
+                                                    root.behavior-changed(root.activation-behavior);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 5. Picker behavior Section
+                        VerticalLayout {
+                            spacing: 8px;
+
+                            Text {
+                                text: "Picker behavior";
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #f0eff1;
+                            }
+
+                            // Group container for Picker behavior
+                            Rectangle {
+                                background: #1c1a1e;
+                                border-radius: 6px;
+                                border-width: 1px;
+                                border-color: #2c2832;
+
+                                VerticalLayout {
+                                    // Row 1: Default color format
+                                    Rectangle {
+                                        height: 58px;
+                                        background: transparent;
+
+                                        HorizontalLayout {
+                                            padding-left: 20px;
+                                            padding-right: 16px;
+                                            alignment: space-between;
+
+                                            HorizontalLayout {
+                                                spacing: 16px;
+                                                alignment: center;
+
+                                                ClipboardIcon { }
+
+                                                VerticalLayout {
+                                                    alignment: center;
+                                                    spacing: 2px;
+
+                                                    Text {
+                                                        text: "Default color format";
+                                                        font-size: 14px;
+                                                        font-weight: 600;
+                                                        color: #f0eff1;
+                                                    }
+
+                                                    Text {
+                                                        text: "This format will be copied to your clipboard";
+                                                        font-size: 12px;
+                                                        color: #8a888c;
+                                                    }
+                                                }
+                                            }
+
+                                            DropdownButton {
+                                                text: "HEX - " + root.current-hex-clean;
+                                                clicked => {
+                                                    if root.default-color-format == "HEX" {
+                                                        root.default-color-format = "RGB";
+                                                    } else if root.default-color-format == "RGB" {
+                                                        root.default-color-format = "HSL";
+                                                    } else {
+                                                        root.default-color-format = "HEX";
+                                                    }
+                                                    root.default-format-changed(root.default-color-format);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Divider Line
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    // Row 2: Show color name
+                                    Rectangle {
+                                        height: 54px;
+                                        background: transparent;
+
+                                        HorizontalLayout {
+                                            padding-left: 20px;
+                                            padding-right: 16px;
+                                            alignment: space-between;
+
+                                            VerticalLayout {
+                                                alignment: center;
+                                                spacing: 2px;
+
+                                                Text {
+                                                    text: "Show color name";
+                                                    font-size: 14px;
+                                                    font-weight: 600;
+                                                    color: #f0eff1;
+                                                }
+
+                                                Text {
+                                                    text: "This will show the name of the color when picking a color";
+                                                    font-size: 12px;
+                                                    color: #8a888c;
+                                                }
+                                            }
+
+                                            HorizontalLayout {
+                                                spacing: 12px;
+                                                alignment: center;
+
+                                                Text {
+                                                    text: root.show-color-name ? "On" : "Off";
+                                                    font-size: 13px;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                ToggleSwitch {
+                                                    checked: root.show-color-name;
+                                                    toggled(val) => {
+                                                        root.show-color-name = val;
+                                                        root.show-name-toggled(val);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 6. Color formats Section
+                        VerticalLayout {
+                            spacing: 8px;
+
+                            Text {
+                                text: "Color formats";
+                                font-size: 14px;
+                                font-weight: 600;
+                                color: #f0eff1;
+                            }
+
+                            // Header card: Color formats title + "Add new format" button
+                            Rectangle {
+                                height: 58px;
+                                background: #1c1a1e;
+                                border-radius: 6px;
+                                border-width: 1px;
+                                border-color: #2c2832;
+
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 16px;
+                                    alignment: space-between;
+
+                                    HorizontalLayout {
+                                        spacing: 16px;
+                                        alignment: center;
+
+                                        FormatListIcon { }
+
+                                        VerticalLayout {
+                                            alignment: center;
+                                            spacing: 2px;
+
+                                            Text {
+                                                text: "Color formats";
+                                                font-size: 14px;
+                                                font-weight: 600;
+                                                color: #f0eff1;
+                                            }
+
+                                            Text {
+                                                text: "Configure the color formats (edit, delete, hide, reorder them)";
+                                                font-size: 12px;
+                                                color: #8a888c;
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        height: 32px;
+                                        background: add_btn_touch.has-hover ? #1a88e4 : #0078d4;
+                                        border-radius: 4px;
+
+                                        HorizontalLayout {
+                                            padding-left: 14px;
+                                            padding-right: 14px;
+                                            alignment: center;
+
+                                            Text {
+                                                text: "Add new format";
+                                                font-size: 13px;
+                                                font-weight: 600;
+                                                color: #ffffff;
+                                                vertical-alignment: center;
+                                            }
+                                        }
+
+                                        add_btn_touch := TouchArea {
+                                            mouse-cursor: pointer;
+                                            clicked => {
+                                                root.status-text = "Standard formats loaded: HEX, RGB, HSL, HSV, CMYK";
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            // Status / Feedback message
-                            if root.status-text != "": Rectangle {
-                                background: #1c261e;
+                            // Stacked individual format rows
+                            Rectangle {
+                                background: #1c1a1e;
+                                border-radius: 6px;
                                 border-width: 1px;
-                                border-color: #2e4a33;
-                                height: 36px;
+                                border-color: #2c2832;
+
+                                VerticalLayout {
+                                    ColorFormatSettingRow {
+                                        format-name: "HEX";
+                                        format-preview: root.current-hex-clean;
+                                        is-enabled: root.hex-format-enabled;
+                                        toggled(val) => {
+                                            root.hex-format-enabled = val;
+                                            root.format-toggled("HEX", val);
+                                        }
+                                        more-clicked => {
+                                            root.copy-hex-clicked(root.current-hex);
+                                        }
+                                    }
+
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    ColorFormatSettingRow {
+                                        format-name: "RGB";
+                                        format-preview: root.current-rgb;
+                                        is-enabled: root.rgb-format-enabled;
+                                        toggled(val) => {
+                                            root.rgb-format-enabled = val;
+                                            root.format-toggled("RGB", val);
+                                        }
+                                        more-clicked => {
+                                            root.copy-rgb-clicked(root.current-rgb);
+                                        }
+                                    }
+
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    ColorFormatSettingRow {
+                                        format-name: "HSL";
+                                        format-preview: root.current-hsl;
+                                        is-enabled: root.hsl-format-enabled;
+                                        toggled(val) => {
+                                            root.hsl-format-enabled = val;
+                                            root.format-toggled("HSL", val);
+                                        }
+                                        more-clicked => {
+                                            root.copy-hsl-clicked(root.current-hsl);
+                                        }
+                                    }
+
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    ColorFormatSettingRow {
+                                        format-name: "HSV";
+                                        format-preview: root.current-hsv;
+                                        is-enabled: root.hsv-format-enabled;
+                                        toggled(val) => {
+                                            root.hsv-format-enabled = val;
+                                            root.format-toggled("HSV", val);
+                                        }
+                                        more-clicked => {
+                                            root.copy-hex-clicked(root.current-hex);
+                                        }
+                                    }
+
+                                    Rectangle { height: 1px; background: #26232b; }
+
+                                    ColorFormatSettingRow {
+                                        format-name: "CMYK";
+                                        format-preview: root.current-cmyk;
+                                        is-enabled: root.cmyk-format-enabled;
+                                        toggled(val) => {
+                                            root.cmyk-format-enabled = val;
+                                            root.format-toggled("CMYK", val);
+                                        }
+                                        more-clicked => {
+                                            root.copy-cmyk-clicked(root.current-cmyk);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 7. Recent Color History Section
+                        Rectangle {
+                            background: #1c1a1e;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: #2c2832;
+
+                            VerticalLayout {
+                                padding-left: 20px;
+                                padding-right: 20px;
+                                padding-top: 14px;
+                                padding-bottom: 14px;
+                                spacing: 10px;
+
+                                Text {
+                                    text: "Color History";
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    color: #f0eff1;
+                                }
 
                                 HorizontalLayout {
-                                    padding-left: 16px;
-                                    padding-right: 16px;
+                                    spacing: 10px;
                                     alignment: start;
 
-                                    Text {
-                                        text: root.status-text;
-                                        font-size: 13px;
-                                        font-weight: 500;
-                                        color: #a6e3a1;
-                                        vertical-alignment: center;
+                                    for item in root.history: ColorBox {
+                                        fill-color: item.col;
+                                        hex-value: item.hex;
+                                        clicked(hex) => { root.swatch-selected(hex); }
                                     }
+                                }
+                            }
+                        }
+
+                        // 8. Status / Feedback Notification Bar
+                        if root.status-text != "": Rectangle {
+                            background: #1c261e;
+                            border-width: 1px;
+                            border-color: #2e4a33;
+                            border-radius: 4px;
+                            height: 36px;
+
+                            HorizontalLayout {
+                                padding-left: 16px;
+                                padding-right: 16px;
+                                alignment: start;
+
+                                Text {
+                                    text: root.status-text;
+                                    font-size: 13px;
+                                    font-weight: 500;
+                                    color: #a6e3a1;
+                                    vertical-alignment: center;
                                 }
                             }
                         }
@@ -892,6 +1665,7 @@ export component MainWindow inherits Window {
             }
         }
     }
+}
 
 component ColorCardItem inherits Rectangle {
     in property <string> label: "";

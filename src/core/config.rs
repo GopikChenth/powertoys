@@ -1,11 +1,41 @@
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
+fn default_true() -> bool {
+    true
+}
+
+fn default_activation_behavior() -> String {
+    "Open editor".to_string()
+}
+
+fn default_format() -> String {
+    "HEX".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorPickerConfig {
     pub shortcut: String,
     pub last_color: String,
     pub history: Vec<String>,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_activation_behavior")]
+    pub activation_behavior: String,
+    #[serde(default = "default_format")]
+    pub default_format: String,
+    #[serde(default = "default_true")]
+    pub show_color_name: bool,
+    #[serde(default = "default_true")]
+    pub hex_enabled: bool,
+    #[serde(default = "default_true")]
+    pub rgb_enabled: bool,
+    #[serde(default = "default_true")]
+    pub hsl_enabled: bool,
+    #[serde(default = "default_true")]
+    pub hsv_enabled: bool,
+    #[serde(default = "default_true")]
+    pub cmyk_enabled: bool,
 }
 
 impl Default for ColorPickerConfig {
@@ -23,6 +53,15 @@ impl Default for ColorPickerConfig {
                 "#CBA6F7".to_string(),
                 "#94E2D5".to_string(),
             ],
+            enabled: true,
+            activation_behavior: "Open editor".to_string(),
+            default_format: "HEX".to_string(),
+            show_color_name: true,
+            hex_enabled: true,
+            rgb_enabled: true,
+            hsl_enabled: true,
+            hsv_enabled: true,
+            cmyk_enabled: true,
         }
     }
 }
