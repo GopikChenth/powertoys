@@ -47,6 +47,7 @@ fn apply_popup_color(popup: &PickerPopupWindow, hex: &str, history_hexes: &[Stri
         popup.set_hsl(SharedString::from(&formats.hsl));
         popup.set_hsv(SharedString::from(&formats.hsv));
         popup.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
+        popup.set_selected_shade_index(2);
 
         // Stepped shades
         let shade_colors: Vec<Color> = formats
@@ -69,6 +70,18 @@ fn apply_popup_color(popup: &PickerPopupWindow, hex: &str, history_hexes: &[Stri
             })
             .collect();
         popup.set_history(ModelRc::from(Rc::new(VecModel::from(history_items))));
+        popup.set_show_copied_toast(true);
+    }
+}
+
+fn apply_popup_shade(popup: &PickerPopupWindow, hex: &str, shade_idx: i32) {
+    if let Some(formats) = format_color(hex) {
+        popup.set_hex(SharedString::from(&formats.hex_clean));
+        popup.set_rgb(SharedString::from(&formats.rgb));
+        popup.set_hsl(SharedString::from(&formats.hsl));
+        popup.set_hsv(SharedString::from(&formats.hsv));
+        popup.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
+        popup.set_selected_shade_index(shade_idx);
         popup.set_show_copied_toast(true);
     }
 }
@@ -238,17 +251,30 @@ fn setup_popup_callbacks(
     let aw_shade = app_weak.clone();
     let cfg_shade = Arc::clone(&cfg);
     popup.on_select_shade(move |idx| {
-        let shades = s_data.lock().unwrap().clone();
+        let shades = {
+            let mut sd = s_data.lock().unwrap();
+            if sd.is_empty() {
+                let cur = a_hex.lock().unwrap().clone();
+                if let Some(f) = format_color(&cur) {
+                    *sd = f.shades;
+                }
+            }
+            sd.clone()
+        };
+
         if let Some(&(sr, sg, sb)) = shades.get(idx as usize) {
             let hex_str = format!("#{:02X}{:02X}{:02X}", sr, sg, sb);
             *a_hex.lock().unwrap() = hex_str.clone();
             copy_to_clipboard(&hex_str);
-            let mut config = cfg_shade.lock().unwrap();
-            config.color_picker.last_color = hex_str.clone();
-            config.save();
+
+            {
+                let mut config = cfg_shade.lock().unwrap();
+                config.color_picker.last_color = hex_str.clone();
+                config.save();
+            }
 
             if let Some(p) = p_weak.upgrade() {
-                apply_popup_color(&p, &hex_str, &config.color_picker.history);
+                apply_popup_shade(&p, &hex_str, idx);
             }
             if let Some(ref w_app) = aw_shade {
                 if let Some(w) = w_app.upgrade() {

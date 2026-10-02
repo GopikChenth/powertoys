@@ -649,12 +649,18 @@ component ColorCardItem inherits Rectangle {
             }
 
             btn_touch := TouchArea {
+                width: 100%;
+                height: 100%;
+                mouse-cursor: pointer;
                 clicked => { root.copy_clicked(); }
             }
         }
     }
 
     touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
         clicked => { root.copy_clicked(); }
     }
 }
@@ -692,6 +698,42 @@ component HistoryDot inherits Rectangle {
     }
 
     TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component ShadeCell inherits Rectangle {
+    in property <color> fill-color;
+    in property <bool> is-selected: false;
+    callback clicked();
+
+    background: root.fill-color;
+
+    // Subtle hover state
+    if touch.has-hover && !root.is-selected: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #ffffff25;
+        border-width: 1px;
+        border-color: #ffffff66;
+    }
+
+    // High-contrast active selection border
+    if root.is-selected: Rectangle {
+        width: 100%;
+        height: 100%;
+        border-width: 2px;
+        border-color: #ffffff;
+        background: transparent;
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        mouse-cursor: pointer;
         clicked => { root.clicked(); }
     }
 }
@@ -702,9 +744,10 @@ component ShadeStrip inherits Rectangle {
     in property <color> s3;
     in property <color> s4;
     in property <color> s5;
+    in property <int> selected-index: 2;
     callback shade_clicked(int);
 
-    width: 18px;
+    width: 20px;
     height: 184px;
     border-radius: 4px;
     clip: true;
@@ -713,11 +756,36 @@ component ShadeStrip inherits Rectangle {
 
     VerticalLayout {
         spacing: 0px;
-        Rectangle { height: 36px; background: root.s1; TouchArea { clicked => { root.shade_clicked(0); } } }
-        Rectangle { height: 37px; background: root.s2; TouchArea { clicked => { root.shade_clicked(1); } } }
-        Rectangle { height: 38px; background: root.s3; TouchArea { clicked => { root.shade_clicked(2); } } }
-        Rectangle { height: 37px; background: root.s4; TouchArea { clicked => { root.shade_clicked(3); } } }
-        Rectangle { height: 36px; background: root.s5; TouchArea { clicked => { root.shade_clicked(4); } } }
+        ShadeCell {
+            vertical-stretch: 1;
+            fill-color: root.s1;
+            is-selected: root.selected-index == 0;
+            clicked => { root.shade_clicked(0); }
+        }
+        ShadeCell {
+            vertical-stretch: 1;
+            fill-color: root.s2;
+            is-selected: root.selected-index == 1;
+            clicked => { root.shade_clicked(1); }
+        }
+        ShadeCell {
+            vertical-stretch: 1;
+            fill-color: root.s3;
+            is-selected: root.selected-index == 2;
+            clicked => { root.shade_clicked(2); }
+        }
+        ShadeCell {
+            vertical-stretch: 1;
+            fill-color: root.s4;
+            is-selected: root.selected-index == 3;
+            clicked => { root.shade_clicked(3); }
+        }
+        ShadeCell {
+            vertical-stretch: 1;
+            fill-color: root.s5;
+            is-selected: root.selected-index == 4;
+            clicked => { root.shade_clicked(4); }
+        }
     }
 }
 
@@ -736,6 +804,7 @@ export component PickerPopupWindow inherits Window {
     in-out property <color> current-color: #9cb687;
     in-out property <[HistoryColor]> history: [];
     in-out property <[color]> shades: [#b8cfab, #abc39c, #9cb687, #819b6e, #677e55];
+    in-out property <int> selected-shade-index: 2;
     in-out property <bool> show-copied-toast: true;
 
     callback close-requested();
@@ -819,6 +888,9 @@ export component PickerPopupWindow inherits Window {
                     }
 
                     close_touch := TouchArea {
+                        width: 100%;
+                        height: 100%;
+                        mouse-cursor: pointer;
                         clicked => { root.close-requested(); }
                     }
                 }
@@ -869,6 +941,9 @@ export component PickerPopupWindow inherits Window {
                     }
 
                     pick_touch := TouchArea {
+                        width: 100%;
+                        height: 100%;
+                        mouse-cursor: pointer;
                         clicked => { root.pick-requested(); }
                     }
                 }
@@ -903,6 +978,9 @@ export component PickerPopupWindow inherits Window {
                     }
 
                     set_touch := TouchArea {
+                        width: 100%;
+                        height: 100%;
+                        mouse-cursor: pointer;
                         clicked => { root.settings-requested(); }
                     }
                 }
@@ -950,6 +1028,7 @@ export component PickerPopupWindow inherits Window {
                     s3: root.shades[2];
                     s4: root.shades[3];
                     s5: root.shades[4];
+                    selected-index: root.selected-shade-index;
                     shade_clicked(idx) => { root.select-shade(idx); }
                 }
 
