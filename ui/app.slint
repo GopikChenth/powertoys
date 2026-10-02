@@ -62,12 +62,12 @@ component SharpButton inherits Rectangle {
     animate background { duration: 120ms; }
 
     HorizontalLayout {
-        padding-left: 18px;
-        padding-right: 18px;
+        padding-left: 12px;
+        padding-right: 12px;
         alignment: center;
         Text {
             text: root.text;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: root.primary ? #141315 : #f0eff1;
             vertical-alignment: center;
@@ -76,6 +76,53 @@ component SharpButton inherits Rectangle {
 
     touch := TouchArea {
         clicked => { root.clicked(); }
+    }
+}
+
+component ColorFormatRow inherits Rectangle {
+    in property <string> label: "";
+    in property <string> value: "";
+    callback copy_clicked();
+
+    height: 38px;
+    background: #171518;
+    border-width: 1px;
+    border-color: #27242a;
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 6px;
+        spacing: 12px;
+        alignment: stretch;
+
+        // Label Column (Fixed width for tabular alignment)
+        Text {
+            width: 52px;
+            text: root.label;
+            font-size: 13px;
+            font-weight: 700;
+            color: #8a888c;
+            vertical-alignment: center;
+        }
+
+        // Value Column (Starts at exact same X position)
+        Text {
+            text: root.value;
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0eff1;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+
+        // Action Button Column (Uniform 105px width)
+        SharpButton {
+            width: 105px;
+            text: "Copy " + root.label;
+            primary: false;
+            clicked => { root.copy_clicked(); }
+        }
     }
 }
 
@@ -371,145 +418,45 @@ export component MainWindow inherits Window {
                                     }
 
                                     HorizontalLayout {
-                                        spacing: 24px;
-                                        alignment: center;
+                                        spacing: 20px;
+                                        alignment: stretch;
 
                                         // Large Color Swatch
                                         Rectangle {
-                                            width: 90px;
-                                            height: 90px;
+                                            width: 120px;
+                                            height: 176px;
                                             background: root.current-color;
                                             border-width: 1px;
                                             border-color: #38343c;
                                         }
 
+                                        // Format Rows Column
                                         VerticalLayout {
-                                            spacing: 10px;
-                                            alignment: center;
+                                            spacing: 8px;
                                             horizontal-stretch: 1;
 
-                                            // HEX
-                                            HorizontalLayout {
-                                                spacing: 14px;
-                                                alignment: center;
-
-                                                Text {
-                                                    text: "HEX:";
-                                                    font-size: 13px;
-                                                    font-weight: 600;
-                                                    color: #8a888c;
-                                                    width: 44px;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Text {
-                                                    text: root.current-hex;
-                                                    font-size: 15px;
-                                                    font-weight: 700;
-                                                    color: #f0eff1;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Rectangle { horizontal-stretch: 1; }
-
-                                                SharpButton {
-                                                    text: "Copy HEX";
-                                                    primary: false;
-                                                    clicked => { root.copy-hex-clicked(root.current-hex); }
-                                                }
+                                            ColorFormatRow {
+                                                label: "HEX";
+                                                value: root.current-hex;
+                                                copy_clicked => { root.copy-hex-clicked(root.current-hex); }
                                             }
 
-                                            // RGB
-                                            HorizontalLayout {
-                                                spacing: 14px;
-                                                alignment: center;
-
-                                                Text {
-                                                    text: "RGB:";
-                                                    font-size: 13px;
-                                                    font-weight: 600;
-                                                    color: #8a888c;
-                                                    width: 44px;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Text {
-                                                    text: root.current-rgb;
-                                                    font-size: 14px;
-                                                    font-weight: 600;
-                                                    color: #f0eff1;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Rectangle { horizontal-stretch: 1; }
-
-                                                SharpButton {
-                                                    text: "Copy RGB";
-                                                    primary: false;
-                                                    clicked => { root.copy-rgb-clicked(root.current-rgb); }
-                                                }
+                                            ColorFormatRow {
+                                                label: "RGB";
+                                                value: root.current-rgb;
+                                                copy_clicked => { root.copy-rgb-clicked(root.current-rgb); }
                                             }
 
-                                            // HSL
-                                            HorizontalLayout {
-                                                spacing: 14px;
-                                                alignment: center;
-
-                                                Text {
-                                                    text: "HSL:";
-                                                    font-size: 13px;
-                                                    font-weight: 600;
-                                                    color: #8a888c;
-                                                    width: 44px;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Text {
-                                                    text: root.current-hsl;
-                                                    font-size: 14px;
-                                                    font-weight: 600;
-                                                    color: #f0eff1;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Rectangle { horizontal-stretch: 1; }
-
-                                                SharpButton {
-                                                    text: "Copy HSL";
-                                                    primary: false;
-                                                    clicked => { root.copy-hsl-clicked(root.current-hsl); }
-                                                }
+                                            ColorFormatRow {
+                                                label: "HSL";
+                                                value: root.current-hsl;
+                                                copy_clicked => { root.copy-hsl-clicked(root.current-hsl); }
                                             }
 
-                                            // CMYK
-                                            HorizontalLayout {
-                                                spacing: 14px;
-                                                alignment: center;
-
-                                                Text {
-                                                    text: "CMYK:";
-                                                    font-size: 13px;
-                                                    font-weight: 600;
-                                                    color: #8a888c;
-                                                    width: 44px;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Text {
-                                                    text: root.current-cmyk;
-                                                    font-size: 14px;
-                                                    font-weight: 600;
-                                                    color: #f0eff1;
-                                                    vertical-alignment: center;
-                                                }
-
-                                                Rectangle { horizontal-stretch: 1; }
-
-                                                SharpButton {
-                                                    text: "Copy CMYK";
-                                                    primary: false;
-                                                    clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
-                                                }
+                                            ColorFormatRow {
+                                                label: "CMYK";
+                                                value: root.current-cmyk;
+                                                copy_clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
                                             }
                                         }
                                     }
