@@ -1,6 +1,46 @@
+component SidebarItem inherits Rectangle {
+    in property <string> text: "";
+    in property <string> icon: "";
+    in property <bool> is-active: true;
+    callback clicked();
+
+    height: 48px;
+    border-radius: 24px;
+    background: is-active ? #383442 : (touch.has-hover ? #2a2730 : transparent);
+
+    animate background { duration: 150ms; }
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 12px;
+        alignment: start;
+
+        if root.icon != "": Text {
+            text: root.icon;
+            font-size: 18px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.text;
+            font-size: 15px;
+            font-weight: root.is-active ? 600 : 500;
+            color: root.is-active ? #eaddff : (touch.has-hover ? #e6e0e9 : #cac4d0);
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
 export component MainWindow inherits Window {
     title: "PowerToys";
+    background: #141218;
 
+    in-out property <int> selected-index: 0;
     callback close-requested();
 
     forward-focus: key-handler;
@@ -14,29 +54,112 @@ export component MainWindow inherits Window {
             return reject;
         }
 
-        VerticalLayout {
-            alignment: center;
-            spacing: 12px;
+        HorizontalLayout {
+            spacing: 0px;
 
-            Text {
-                text: "PowerToys";
-                font-size: 32px;
-                font-weight: 700;
-                horizontal-alignment: center;
+            // Sidebar
+            Rectangle {
+                width: 260px;
+                background: #1d1b20;
+
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+
+                    // App Header
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-top: 8px;
+                        padding-bottom: 12px;
+                        spacing: 10px;
+                        alignment: start;
+
+                        Text {
+                            text: "⚡";
+                            font-size: 22px;
+                            vertical-alignment: center;
+                        }
+
+                        Text {
+                            text: "PowerToys";
+                            font-size: 20px;
+                            font-weight: 700;
+                            color: #e6e0e9;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Separator
+                    Rectangle {
+                        height: 1px;
+                        background: #332f3b;
+                    }
+
+                    // Navigation Category Label
+                    HorizontalLayout {
+                        padding-left: 14px;
+                        padding-top: 12px;
+                        padding-bottom: 4px;
+                        Text {
+                            text: "FEATURES";
+                            font-size: 11px;
+                            font-weight: 700;
+                            color: #938f99;
+                        }
+                    }
+
+                    // First feature: Colour Picker
+                    SidebarItem {
+                        text: "Colour Picker";
+                        icon: "🎨";
+                        is-active: root.selected-index == 0;
+                        clicked => { root.selected-index = 0; }
+                    }
+
+                    Rectangle { vertical-stretch: 1; }
+
+                    // Footer hint
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-bottom: 8px;
+                        Text {
+                            text: "Press Esc to exit";
+                            font-size: 12px;
+                            color: #79747e;
+                        }
+                    }
+                }
             }
 
-            Text {
-                text: "Empty Application (Fullscreen)";
-                font-size: 16px;
-                color: #888888;
-                horizontal-alignment: center;
+            // Divider Line
+            Rectangle {
+                width: 1px;
+                background: #332f3b;
             }
 
-            Text {
-                text: "Press Escape to exit";
-                font-size: 12px;
-                color: #555555;
-                horizontal-alignment: center;
+            // Main Content Area
+            Rectangle {
+                horizontal-stretch: 1;
+
+                VerticalLayout {
+                    padding: 36px;
+                    spacing: 16px;
+
+                    Text {
+                        text: "Colour Picker";
+                        font-size: 32px;
+                        font-weight: 700;
+                        color: #e6e0e9;
+                    }
+
+                    Text {
+                        text: "Quick and simple system-wide color picker utility.";
+                        font-size: 15px;
+                        color: #cac4d0;
+                    }
+
+                    Rectangle { vertical-stretch: 1; }
+                }
             }
         }
     }
