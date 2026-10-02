@@ -1,3 +1,8 @@
+export struct HistoryColor {
+    hex: string,
+    col: color,
+}
+
 component SidebarItem inherits Rectangle {
     in property <string> text: "";
     in property <string> icon: "";
@@ -115,21 +120,34 @@ component ColorBox inherits Rectangle {
     }
 }
 
+component FeatureCard inherits Rectangle {
+    background: #1b191d;
+    border-width: 1px;
+    border-color: #2b282e;
+}
+
 export component MainWindow inherits Window {
     title: "PowerToys";
-    background: #141315; // Antigravity neutral obsidian black
+    background: #141315;
+    min-width: 800px;
+    min-height: 600px;
 
     in-out property <int> selected-index: 0;
     in-out property <string> shortcut-text: "SUPER + SHIFT + C";
     in-out property <string> current-hex: "#B59EE6";
     in-out property <string> current-rgb: "rgb(181, 158, 230)";
+    in-out property <string> current-hsl: "hsl(259, 58%, 76%)";
+    in-out property <string> current-cmyk: "cmyk(21%, 31%, 0%, 10%)";
     in-out property <color> current-color: #b59ee6;
     in-out property <string> status-text: "";
+    in-out property <[HistoryColor]> history: [];
 
     callback close-requested();
     callback pick-color-clicked();
     callback copy-hex-clicked(string);
     callback copy-rgb-clicked(string);
+    callback copy-hsl-clicked(string);
+    callback copy-cmyk-clicked(string);
     callback save-shortcut-clicked(string);
     callback swatch-selected(string);
 
@@ -147,10 +165,10 @@ export component MainWindow inherits Window {
         HorizontalLayout {
             spacing: 0px;
 
-            // Sidebar
+            // Sidebar (Fixed width)
             Rectangle {
-                width: 260px;
-                background: #181719; // Antigravity sidebar dark neutral
+                width: 250px;
+                background: #181719;
 
                 VerticalLayout {
                     padding: 16px;
@@ -191,14 +209,14 @@ export component MainWindow inherits Window {
                         padding-top: 12px;
                         padding-bottom: 4px;
                         Text {
-                            text: "FEATURES";
+                            text: "MODULES";
                             font-size: 11px;
                             font-weight: 700;
                             color: #8a888c;
                         }
                     }
 
-                    // First feature: Colour Picker (Sharp Box)
+                    // Module 0: Colour Picker
                     SidebarItem {
                         text: "Colour Picker";
                         icon: "🎨";
@@ -227,253 +245,331 @@ export component MainWindow inherits Window {
                 background: #252327;
             }
 
-            // Main Content Area
+            // Main Content Area with mathematically guaranteed right-side padding
             Rectangle {
                 horizontal-stretch: 1;
+                background: #141315;
 
-                VerticalLayout {
-                    padding: 36px;
-                    spacing: 24px;
+                Flickable {
+                    x: 36px;
+                    y: 32px;
+                    width: parent.width - 72px;
+                    height: parent.height - 64px;
+                    content-width: self.width;
+                    content-height: content.preferred-height;
 
-                    // Header
-                    VerticalLayout {
-                        spacing: 6px;
-                        Text {
-                            text: "Colour Picker";
-                            font-size: 30px;
-                            font-weight: 700;
-                            color: #f0eff1;
-                        }
+                    content := VerticalLayout {
+                        width: parent.width;
+                        spacing: 20px;
+                        alignment: start;
 
-                        Text {
-                            text: "Pixel-accurate screen color picker powered by Hyprpicker.";
-                            font-size: 14px;
-                            color: #a6a4a8;
-                        }
-                    }
-
-                    // Action Banner (Sharp Box)
-                    Rectangle {
-                        height: 76px;
-                        background: #1b191d;
-                        border-width: 1px;
-                        border-color: #2b282e;
-
-                        HorizontalLayout {
-                            padding-left: 20px;
-                            padding-right: 20px;
-                            spacing: 16px;
-                            alignment: center;
-
+                            // Header
                             VerticalLayout {
-                                alignment: center;
-                                spacing: 4px;
+                                spacing: 6px;
                                 Text {
-                                    text: "Pick Any Color On Screen";
-                                    font-size: 15px;
-                                    font-weight: 600;
+                                    text: "Colour Picker";
+                                    font-size: 28px;
+                                    font-weight: 700;
                                     color: #f0eff1;
                                 }
+
                                 Text {
-                                    text: "Freezes your display with an instant magnifying zoom loupe.";
-                                    font-size: 12px;
-                                    color: #8a888c;
+                                    text: "System-wide pixel color inspection and clipboard utility.";
+                                    font-size: 13px;
+                                    color: #a6a4a8;
                                 }
                             }
 
-                            Rectangle { horizontal-stretch: 1; }
-
-                            SharpButton {
-                                text: "🎯 Pick Color (Hyprpicker)";
-                                primary: true;
-                                clicked => { root.pick-color-clicked(); }
-                            }
-                        }
-                    }
-
-                    // Shortcut Configuration Section (Sharp Box)
-                    Rectangle {
-                        background: #1b191d;
-                        border-width: 1px;
-                        border-color: #2b282e;
-
-                        VerticalLayout {
-                            padding: 20px;
-                            spacing: 14px;
-
-                            Text {
-                                text: "Global Activation Shortcut";
-                                font-size: 16px;
-                                font-weight: 600;
-                                color: #f0eff1;
-                            }
-
-                            Text {
-                                text: "Customize the key combination used to trigger Hyprpicker globally in Hyprland.";
-                                font-size: 12px;
-                                color: #8a888c;
-                            }
-
-                            HorizontalLayout {
-                                spacing: 12px;
-
-                                shortcut-input := SharpInput {
-                                    text: root.shortcut-text;
-                                    horizontal-stretch: 1;
-                                }
-
-                                SharpButton {
-                                    text: "Save & Apply Shortcut";
-                                    primary: false;
-                                    clicked => { root.save-shortcut-clicked(shortcut-input.text); }
-                                }
-                            }
-
-                            if root.status-text != "": Text {
-                                text: root.status-text;
-                                font-size: 12px;
-                                font-weight: 500;
-                                color: #a6e3a1;
-                            }
-                        }
-                    }
-
-                    // Current Picked Color Display (Sharp Box)
-                    Rectangle {
-                        background: #1b191d;
-                        border-width: 1px;
-                        border-color: #2b282e;
-
-                        VerticalLayout {
-                            padding: 20px;
-                            spacing: 14px;
-
-                            Text {
-                                text: "Picked Color";
-                                font-size: 16px;
-                                font-weight: 600;
-                                color: #f0eff1;
-                            }
-
-                            HorizontalLayout {
-                                spacing: 20px;
-                                alignment: center;
-
-                                // Large Color Swatch
-                                Rectangle {
-                                    width: 80px;
-                                    height: 80px;
-                                    background: root.current-color;
-                                    border-width: 1px;
-                                    border-color: #38343c;
-                                }
-
-                                VerticalLayout {
-                                    spacing: 10px;
+                            // Action Banner (Sharp Box)
+                            FeatureCard {
+                                height: 76px;
+                                HorizontalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    spacing: 16px;
                                     alignment: center;
-                                    horizontal-stretch: 1;
 
-                                    HorizontalLayout {
-                                        spacing: 14px;
+                                    VerticalLayout {
                                         alignment: center;
-
+                                        spacing: 4px;
                                         Text {
-                                            text: "HEX:";
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                            color: #8a888c;
-                                            width: 40px;
-                                            vertical-alignment: center;
-                                        }
-
-                                        Text {
-                                            text: root.current-hex;
+                                            text: "Pick Any Color On Screen";
                                             font-size: 15px;
-                                            font-weight: 700;
+                                            font-weight: 600;
                                             color: #f0eff1;
-                                            vertical-alignment: center;
                                         }
-
-                                        Rectangle { horizontal-stretch: 1; }
-
-                                        SharpButton {
-                                            text: "Copy HEX";
-                                            primary: false;
-                                            clicked => { root.copy-hex-clicked(root.current-hex); }
+                                        Text {
+                                            text: "Magnifying loupe freezes screen and captures exact pixel color.";
+                                            font-size: 12px;
+                                            color: #8a888c;
                                         }
                                     }
 
+                                    Rectangle { horizontal-stretch: 1; }
+
+                                    SharpButton {
+                                        text: "🎯 Pick Color (Hyprpicker)";
+                                        primary: true;
+                                        clicked => { root.pick-color-clicked(); }
+                                    }
+                                }
+                            }
+
+                            // Shortcut Configuration Section
+                            FeatureCard {
+                                VerticalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    padding-top: 18px;
+                                    padding-bottom: 18px;
+                                    spacing: 12px;
+
+                                    Text {
+                                        text: "Global Activation Shortcut";
+                                        font-size: 15px;
+                                        font-weight: 600;
+                                        color: #f0eff1;
+                                    }
+
+                                    Text {
+                                        text: "Press this shortcut from anywhere in your desktop to trigger Hyprpicker.";
+                                        font-size: 12px;
+                                        color: #8a888c;
+                                    }
+
                                     HorizontalLayout {
-                                        spacing: 14px;
-                                        alignment: center;
+                                        spacing: 12px;
 
-                                        Text {
-                                            text: "RGB:";
-                                            font-size: 13px;
-                                            font-weight: 600;
-                                            color: #8a888c;
-                                            width: 40px;
-                                            vertical-alignment: center;
+                                        shortcut-input := SharpInput {
+                                            text: root.shortcut-text;
+                                            horizontal-stretch: 1;
                                         }
-
-                                        Text {
-                                            text: root.current-rgb;
-                                            font-size: 15px;
-                                            font-weight: 700;
-                                            color: #f0eff1;
-                                            vertical-alignment: center;
-                                        }
-
-                                        Rectangle { horizontal-stretch: 1; }
 
                                         SharpButton {
-                                            text: "Copy RGB";
+                                            text: "Save & Apply Shortcut";
                                             primary: false;
-                                            clicked => { root.copy-rgb-clicked(root.current-rgb); }
+                                            clicked => { root.save-shortcut-clicked(shortcut-input.text); }
                                         }
+                                    }
+                                }
+                            }
+
+                            // Active Color Inspector Section
+                            FeatureCard {
+                                VerticalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    padding-top: 18px;
+                                    padding-bottom: 18px;
+                                    spacing: 14px;
+
+                                    Text {
+                                        text: "Active Color Inspector";
+                                        font-size: 15px;
+                                        font-weight: 600;
+                                        color: #f0eff1;
+                                    }
+
+                                    HorizontalLayout {
+                                        spacing: 24px;
+                                        alignment: center;
+
+                                        // Large Color Swatch
+                                        Rectangle {
+                                            width: 90px;
+                                            height: 90px;
+                                            background: root.current-color;
+                                            border-width: 1px;
+                                            border-color: #38343c;
+                                        }
+
+                                        VerticalLayout {
+                                            spacing: 10px;
+                                            alignment: center;
+                                            horizontal-stretch: 1;
+
+                                            // HEX
+                                            HorizontalLayout {
+                                                spacing: 14px;
+                                                alignment: center;
+
+                                                Text {
+                                                    text: "HEX:";
+                                                    font-size: 13px;
+                                                    font-weight: 600;
+                                                    color: #8a888c;
+                                                    width: 44px;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Text {
+                                                    text: root.current-hex;
+                                                    font-size: 15px;
+                                                    font-weight: 700;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Rectangle { horizontal-stretch: 1; }
+
+                                                SharpButton {
+                                                    text: "Copy HEX";
+                                                    primary: false;
+                                                    clicked => { root.copy-hex-clicked(root.current-hex); }
+                                                }
+                                            }
+
+                                            // RGB
+                                            HorizontalLayout {
+                                                spacing: 14px;
+                                                alignment: center;
+
+                                                Text {
+                                                    text: "RGB:";
+                                                    font-size: 13px;
+                                                    font-weight: 600;
+                                                    color: #8a888c;
+                                                    width: 44px;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Text {
+                                                    text: root.current-rgb;
+                                                    font-size: 14px;
+                                                    font-weight: 600;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Rectangle { horizontal-stretch: 1; }
+
+                                                SharpButton {
+                                                    text: "Copy RGB";
+                                                    primary: false;
+                                                    clicked => { root.copy-rgb-clicked(root.current-rgb); }
+                                                }
+                                            }
+
+                                            // HSL
+                                            HorizontalLayout {
+                                                spacing: 14px;
+                                                alignment: center;
+
+                                                Text {
+                                                    text: "HSL:";
+                                                    font-size: 13px;
+                                                    font-weight: 600;
+                                                    color: #8a888c;
+                                                    width: 44px;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Text {
+                                                    text: root.current-hsl;
+                                                    font-size: 14px;
+                                                    font-weight: 600;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Rectangle { horizontal-stretch: 1; }
+
+                                                SharpButton {
+                                                    text: "Copy HSL";
+                                                    primary: false;
+                                                    clicked => { root.copy-hsl-clicked(root.current-hsl); }
+                                                }
+                                            }
+
+                                            // CMYK
+                                            HorizontalLayout {
+                                                spacing: 14px;
+                                                alignment: center;
+
+                                                Text {
+                                                    text: "CMYK:";
+                                                    font-size: 13px;
+                                                    font-weight: 600;
+                                                    color: #8a888c;
+                                                    width: 44px;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Text {
+                                                    text: root.current-cmyk;
+                                                    font-size: 14px;
+                                                    font-weight: 600;
+                                                    color: #f0eff1;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                Rectangle { horizontal-stretch: 1; }
+
+                                                SharpButton {
+                                                    text: "Copy CMYK";
+                                                    primary: false;
+                                                    clicked => { root.copy-cmyk-clicked(root.current-cmyk); }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Dynamic Color History Section
+                            FeatureCard {
+                                VerticalLayout {
+                                    padding-left: 20px;
+                                    padding-right: 20px;
+                                    padding-top: 18px;
+                                    padding-bottom: 18px;
+                                    spacing: 12px;
+
+                                    Text {
+                                        text: "Color History";
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                        color: #f0eff1;
+                                    }
+
+                                    HorizontalLayout {
+                                        spacing: 10px;
+                                        alignment: start;
+
+                                        for item in root.history: ColorBox {
+                                            fill-color: item.col;
+                                            hex-value: item.hex;
+                                            clicked(hex) => { root.swatch-selected(hex); }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Status / Feedback message
+                            if root.status-text != "": Rectangle {
+                                background: #1c261e;
+                                border-width: 1px;
+                                border-color: #2e4a33;
+                                height: 36px;
+
+                                HorizontalLayout {
+                                    padding-left: 16px;
+                                    padding-right: 16px;
+                                    alignment: start;
+
+                                    Text {
+                                        text: root.status-text;
+                                        font-size: 13px;
+                                        font-weight: 500;
+                                        color: #a6e3a1;
+                                        vertical-alignment: center;
                                     }
                                 }
                             }
                         }
                     }
-
-                    // Palette / Swatches Row
-                    Rectangle {
-                        background: #1b191d;
-                        border-width: 1px;
-                        border-color: #2b282e;
-
-                        VerticalLayout {
-                            padding: 20px;
-                            spacing: 12px;
-
-                            Text {
-                                text: "Preset Palette";
-                                font-size: 14px;
-                                font-weight: 600;
-                                color: #f0eff1;
-                            }
-
-                            HorizontalLayout {
-                                spacing: 10px;
-
-                                ColorBox { fill-color: #b59ee6; hex-value: "#B59EE6"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #f38ba8; hex-value: "#F38BA8"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #a6e3a1; hex-value: "#A6E3A1"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #89b4fa; hex-value: "#89B4FA"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #f9e2af; hex-value: "#F9E2AF"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #fab387; hex-value: "#FAB387"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #cba6f7; hex-value: "#CBA6F7"; clicked(hex) => { root.swatch-selected(hex); } }
-                                ColorBox { fill-color: #94e2d5; hex-value: "#94E2D5"; clicked(hex) => { root.swatch-selected(hex); } }
-
-                                Rectangle { horizontal-stretch: 1; }
-                            }
-                        }
-                    }
-
-                    Rectangle { vertical-stretch: 1; }
                 }
             }
         }
     }
-}
+

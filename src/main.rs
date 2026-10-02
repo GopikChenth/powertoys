@@ -1,160 +1,105 @@
-use std::path::PathBuf;
-use std::process::Command;
-use serde::{Deserialize, Serialize};
-use slint::{Color, ComponentHandle, SharedString};
+mod core;
+mod modules;
+
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use slint::{Color, ComponentHandle, ModelRc, SharedString, VecModel};
+
+use core::config::AppConfig;
+use core::hyprland::HyprlandManager;
+use core::ipc::{send_ipc_message, start_ipc_listener};
+use modules::color_picker::model::{format_color, hex_to_rgb};
+use modules::color_picker::{copy_to_clipboard, notify, pick_color_sync};
 
 slint::include_modules!();
 
-#[derive(Debug, Serialize, Deserialize)]
-struct AppConfig {
-    shortcut: String,
-    last_color: String,
+fn update_history_ui(app: &MainWindow, history_hexes: &[String]) {
+    let items: Vec<HistoryColor> = history_hexes
+        .iter()
+        .map(|hex| {
+            let (r, g, b) = hex_to_rgb(hex).unwrap_or((181, 158, 230));
+            HistoryColor {
+                hex: SharedString::from(hex),
+                col: Color::from_rgb_u8(r, g, b),
+            }
+        })
+        .collect();
+    let model = Rc::new(VecModel::from(items));
+    app.set_history(ModelRc::from(model));
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            shortcut: "SUPER + SHIFT + C".to_string(),
-            last_color: "#B59EE6".to_string(),
-        }
+fn apply_color_to_ui(app: &MainWindow, hex: &str) {
+    if let Some(formats) = format_color(hex) {
+        app.set_current_hex(SharedString::from(&formats.hex));
+        app.set_current_rgb(SharedString::from(&formats.rgb));
+        app.set_current_hsl(SharedString::from(&formats.hsl));
+        app.set_current_cmyk(SharedString::from(&formats.cmyk));
+        app.set_current_color(Color::from_rgb_u8(formats.r, formats.g, formats.b));
     }
 }
 
-fn config_path() -> PathBuf {
-    if let Ok(home) = std::env::var("HOME") {
-        PathBuf::from(home).join(".config").join("powertoys").join("config.json")
-    } else {
-        PathBuf::from("config.json")
-    }
-}
-
-fn load_config() -> AppConfig {
-    let path = config_path();
-    if path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(cfg) = serde_json::from_str(&content) {
-                return cfg;
+fn handle_cli_args() -> bool {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 && (args[1] == "--pick" || args[1] == "-p") {
+        if let Some(hex) = pick_color_sync() {
+            // Try to notify the running GUI instance via IPC
+            let ipc_msg = format!("PICK_COLOR:{}", hex);
+            if send_ipc_message(&ipc_msg).is_err() {
+                // GUI is not running; persist to config and notify
+                let mut cfg = AppConfig::load();
+                cfg.add_history_color(&hex);
+                notify("PowerToys Color Picker", &format!("Picked {} (Copied to clipboard)", hex));
             }
         }
+        return true;
     }
-    AppConfig::default()
-}
-
-fn save_config(cfg: &AppConfig) {
-    let path = config_path();
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Ok(json) = serde_json::to_string_pretty(cfg) {
-        let _ = std::fs::write(path, json);
-    }
-}
-
-fn parse_hex_to_rgb(hex: &str) -> Option<(u8, u8, u8)> {
-    let clean = hex.trim_start_matches('#');
-    if clean.len() == 6 {
-        let r = u8::from_str_radix(&clean[0..2], 16).ok()?;
-        let g = u8::from_str_radix(&clean[2..4], 16).ok()?;
-        let b = u8::from_str_radix(&clean[4..6], 16).ok()?;
-        Some((r, g, b))
-    } else {
-        None
-    }
-}
-
-fn copy_to_clipboard(text: &str) {
-    let _ = Command::new("wl-copy").arg(text).spawn();
-}
-
-fn apply_shortcut_to_hyprland(shortcut_str: &str) -> Result<(), String> {
-    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
-
-    // Parse shortcut string like "SUPER + SHIFT + C" or "SUPER SHIFT, C"
-    let cleaned: Vec<String> = shortcut_str
-        .split(['+', ',', ' '])
-        .filter(|s| !s.is_empty())
-        .map(|s| s.trim().to_uppercase())
-        .collect();
-
-    if cleaned.is_empty() {
-        return Err("Shortcut cannot be empty".to_string());
-    }
-
-    let key = cleaned.last().unwrap();
-    let mods = cleaned[..cleaned.len() - 1].join(" ");
-    let lua_combo = cleaned.join(" + ");
-
-    // 1. Standard Hyprland config (~/.config/hypr/powertoys.conf)
-    let hypr_dir = PathBuf::from(&home).join(".config").join("hypr");
-    let powertoys_conf = hypr_dir.join("powertoys.conf");
-    let bind_content = format!(
-        "# Auto-generated PowerToys Hyprland Keybinds\nbind = {}, {}, exec, hyprpicker -a -n\n",
-        if mods.is_empty() { "SUPER".to_string() } else { mods },
-        key
-    );
-    let _ = std::fs::write(&powertoys_conf, bind_content);
-
-    // Ensure source in hyprland.conf if present
-    let hypr_conf_path = hypr_dir.join("hyprland.conf");
-    if let Ok(hypr_conf_content) = std::fs::read_to_string(&hypr_conf_path) {
-        if !hypr_conf_content.contains("powertoys.conf") {
-            let updated = format!(
-                "{}\n# PowerToys Integration\nsource = ~/.config/hypr/powertoys.conf\n",
-                hypr_conf_content.trim_end()
-            );
-            let _ = std::fs::write(&hypr_conf_path, updated);
-        }
-    }
-
-    // 2. Caelestia / Midnight Lua Hyprland config (~/.config/powertoys/powertoys.lua)
-    let powertoys_dir = PathBuf::from(&home).join(".config").join("powertoys");
-    let _ = std::fs::create_dir_all(&powertoys_dir);
-    let powertoys_lua = powertoys_dir.join("powertoys.lua");
-    let lua_content = format!(
-        "-- Auto-generated PowerToys Hyprland Lua Keybinds\nhl.bind(\"{}\", hl.dsp.exec_cmd(\"hyprpicker -a -n\"))\n",
-        lua_combo
-    );
-    let _ = std::fs::write(&powertoys_lua, lua_content);
-
-    let caelestia_user_lua = PathBuf::from(&home).join(".config").join("caelestia").join("hypr-user.lua");
-    if let Ok(user_lua_content) = std::fs::read_to_string(&caelestia_user_lua) {
-        if !user_lua_content.contains("powertoys.lua") {
-            let updated = format!(
-                "{}\n\n-- PowerToys Integration\npcall(function()\n    dofile(os.getenv(\"HOME\") .. \"/.config/powertoys/powertoys.lua\")\nend)\n",
-                user_lua_content.trim_end()
-            );
-            let _ = std::fs::write(&caelestia_user_lua, updated);
-        }
-    }
-
-    // 3. Reload Hyprland
-    let _ = Command::new("hyprctl").arg("reload").status();
-    Ok(())
+    false
 }
 
 fn main() -> Result<(), slint::PlatformError> {
-    let app = MainWindow::new()?;
-
-    // Fullscreen mode
-    app.window().set_fullscreen(true);
-
-    let cfg = load_config();
-    let initial_shortcut = cfg.shortcut.clone();
-    let initial_hex = cfg.last_color.clone();
-
-    // Set initial UI values
-    app.set_shortcut_text(SharedString::from(&initial_shortcut));
-    app.set_current_hex(SharedString::from(&initial_hex));
-
-    if let Some((r, g, b)) = parse_hex_to_rgb(&initial_hex) {
-        app.set_current_rgb(SharedString::from(format!("rgb({}, {}, {})", r, g, b)));
-        app.set_current_color(Color::from_rgb_u8(r, g, b));
+    // Check if invoked via global shortcut / CLI flag
+    if handle_cli_args() {
+        return Ok(());
     }
 
-    // Ensure Hyprland bind is applied at startup
-    let _ = apply_shortcut_to_hyprland(&initial_shortcut);
+    let app = MainWindow::new()?;
+    let cfg = Arc::new(Mutex::new(AppConfig::load()));
 
-    // Escape or close callback
+    // Initial setup from configuration
+    {
+        let config = cfg.lock().unwrap();
+        app.set_shortcut_text(SharedString::from(&config.color_picker.shortcut));
+        apply_color_to_ui(&app, &config.color_picker.last_color);
+        update_history_ui(&app, &config.color_picker.history);
+
+        // Ensure shortcut is registered in Hyprland to invoke `powertoys --pick`
+        let _ = HyprlandManager::register_shortcut(&config.color_picker.shortcut, "powertoys --pick");
+    }
+
+    // Set up IPC Server listener to receive color updates from global shortcuts
+    let app_weak_ipc = app.as_weak();
+    let cfg_ipc = Arc::clone(&cfg);
+    start_ipc_listener(move |msg| {
+        if let Some(hex) = msg.strip_prefix("PICK_COLOR:") {
+            let clean_hex = hex.trim().to_uppercase();
+            let weak = app_weak_ipc.clone();
+            let cfg_clone = Arc::clone(&cfg_ipc);
+
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(w) = weak.upgrade() {
+                    apply_color_to_ui(&w, &clean_hex);
+
+                    let mut config = cfg_clone.lock().unwrap();
+                    config.add_history_color(&clean_hex);
+                    update_history_ui(&w, &config.color_picker.history);
+
+                    w.set_status_text(SharedString::from(format!("✓ Picked & copied {} to clipboard", clean_hex)));
+                }
+            });
+        }
+    });
+
+    // Close requested callback
     let app_weak = app.as_weak();
     app.on_close_requested(move || {
         if let Some(w) = app_weak.upgrade() {
@@ -162,31 +107,26 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // Pick color using Hyprpicker
+    // Pick color button clicked in GUI
     let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
     app.on_pick_color_clicked(move || {
         let weak = app_weak.clone();
-        std::thread::spawn(move || {
-            if let Ok(output) = Command::new("hyprpicker").arg("-a").arg("-n").output() {
-                if output.status.success() {
-                    let hex = String::from_utf8_lossy(&output.stdout).trim().to_uppercase();
-                    if !hex.is_empty() {
-                        let mut c = load_config();
-                        c.last_color = hex.clone();
-                        save_config(&c);
+        let cfg_inner = Arc::clone(&cfg_clone);
 
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(w) = weak.upgrade() {
-                                w.set_current_hex(SharedString::from(&hex));
-                                if let Some((r, g, b)) = parse_hex_to_rgb(&hex) {
-                                    w.set_current_rgb(SharedString::from(format!("rgb({}, {}, {})", r, g, b)));
-                                    w.set_current_color(Color::from_rgb_u8(r, g, b));
-                                }
-                                w.set_status_text(SharedString::from(format!("✓ Picked & copied {} to clipboard", hex)));
-                            }
-                        });
+        std::thread::spawn(move || {
+            if let Some(hex) = pick_color_sync() {
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(w) = weak.upgrade() {
+                        apply_color_to_ui(&w, &hex);
+
+                        let mut config = cfg_inner.lock().unwrap();
+                        config.add_history_color(&hex);
+                        update_history_ui(&w, &config.color_picker.history);
+
+                        w.set_status_text(SharedString::from(format!("✓ Picked & copied {} to clipboard", hex)));
                     }
-                }
+                });
             }
         });
     });
@@ -211,30 +151,52 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // Preset Swatch clicked
+    // Copy HSL
     let app_weak = app.as_weak();
+    app.on_copy_hsl_clicked(move |hsl| {
+        let text = hsl.to_string();
+        copy_to_clipboard(&text);
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+        }
+    });
+
+    // Copy CMYK
+    let app_weak = app.as_weak();
+    app.on_copy_cmyk_clicked(move |cmyk| {
+        let text = cmyk.to_string();
+        copy_to_clipboard(&text);
+        if let Some(w) = app_weak.upgrade() {
+            w.set_status_text(SharedString::from(format!("✓ Copied {} to clipboard", text)));
+        }
+    });
+
+    // History swatch selected
+    let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
     app.on_swatch_selected(move |hex| {
         let text = hex.to_string();
         copy_to_clipboard(&text);
         if let Some(w) = app_weak.upgrade() {
-            w.set_current_hex(SharedString::from(&text));
-            if let Some((r, g, b)) = parse_hex_to_rgb(&text) {
-                w.set_current_rgb(SharedString::from(format!("rgb({}, {}, {})", r, g, b)));
-                w.set_current_color(Color::from_rgb_u8(r, g, b));
-            }
+            apply_color_to_ui(&w, &text);
+            let mut config = cfg_clone.lock().unwrap();
+            config.color_picker.last_color = text.clone();
+            config.save();
             w.set_status_text(SharedString::from(format!("✓ Swatch {} selected & copied", text)));
         }
     });
 
     // Save & apply shortcut
     let app_weak = app.as_weak();
+    let cfg_clone = Arc::clone(&cfg);
     app.on_save_shortcut_clicked(move |shortcut| {
         let s = shortcut.to_string();
-        match apply_shortcut_to_hyprland(&s) {
+        match HyprlandManager::register_shortcut(&s, "powertoys --pick") {
             Ok(_) => {
-                let mut c = load_config();
-                c.shortcut = s.clone();
-                save_config(&c);
+                let mut config = cfg_clone.lock().unwrap();
+                config.color_picker.shortcut = s.clone();
+                config.save();
+
                 if let Some(w) = app_weak.upgrade() {
                     w.set_shortcut_text(SharedString::from(&s));
                     w.set_status_text(SharedString::from(format!("✓ Bound shortcut '{}' to Hyprland!", s)));
